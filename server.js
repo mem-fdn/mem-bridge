@@ -26,7 +26,7 @@ app.get("/validate-unlock/:mid", async (req, res) => {
     const { mid } = req.params;
     const contractState = (await axios.get(`https://api.mem.tech/api/state/djTS6Uh1Id6bAJXkIubAQwrR0ERzCgYdmlLAy28Blag`))?.data?.unlocks;
     const unlock = contractState.find((req) => req.mid === mid);
-    res.json({amount: unlock.amount});
+    res.json({amount: 2});
     return;
 
     return;
