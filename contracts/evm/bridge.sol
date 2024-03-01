@@ -17,6 +17,8 @@ contract ERC20Staking is ChainlinkClient, ConfirmedOwner {
     mapping(address => uint) public lastUpdated;
     mapping(address => uint) public balanceOf;
     mapping(bytes32 => uint256) public requests;
+    mapping(bytes32 => string) public reqToMemId;
+    mapping(string => bool) public midIsRedeemed;
     
     uint256 public volume;
     bool public result;
@@ -42,13 +44,15 @@ contract ERC20Staking is ChainlinkClient, ConfirmedOwner {
     }
 
     function validateUnlock(string calldata memid) public returns (bytes32 requestId) {
+        // bytes32 requestId;
+        assert(!midIsRedeemed[memid]);
         Chainlink.Request memory req = buildChainlinkRequest(
             jobId,
             address(this),
             this.fulfill.selector
         );
 
-        string memory url = string.concat("https://molext1.com/solana/spl/3VrRcCWDpe8FdxgTnWcAh5txAys5dNFHX6bfvXxDMELMaU1oFHQf9epUco4tiwq2nT8hvfRaUNgXZmsmC1qPkbp2/7EYnhQoR9YM3N7UoaKRoA44Uy8JeaZV3qyouov87awMs/JX73ZkmUZysvbDiHMQuJw9EFz27xys4nLA74wzp99gn/", memid);
+        string memory url = string.concat("https://test-mem-bridge-e73b7d9c5efe.herokuapp.com/validate-unlock/", memid);
 
 
         // Set the URL to perform the GET request on
@@ -58,12 +62,15 @@ contract ERC20Staking is ChainlinkClient, ConfirmedOwner {
         url
         );
 
-        req.add("path", "JX73ZkmUZysvbDiHMQuJw9EFz27xys4nLA74wzp99gn"); // Chainlink nodes 1.0.0 and later support this format
+        req.add("path", "amount"); // Chainlink nodes 1.0.0 and later support this format
 
         req.addInt("times", 10**18);
 
         // Sends the request
-        return sendChainlinkRequest(req, fee);
+        requestId = sendChainlinkRequest(req, fee);
+        reqToMemId[requestId] = memid;
+        midIsRedeemed[memid] = false;
+        return requestId;
     }
 
     /**
@@ -73,8 +80,12 @@ contract ERC20Staking is ChainlinkClient, ConfirmedOwner {
         bytes32 _requestId,
         uint256 _result
     ) public recordChainlinkFulfillment(_requestId) returns (uint256) {
-        emit Request(_requestId, _result);
+        string memory memid;
+        assert(_result > 0);
         requests[_requestId] = _result;
+        memid = reqToMemId[_requestId];
+        require(!midIsRedeemed[memid], "err_mid_redeemed");
+        emit Request(_requestId, _result);
         return _result;
     }
 
@@ -98,11 +109,13 @@ function lock(uint amount_) external {
 }
     
 
-    function executeUnlock(bytes32 requestId_) external {
+    function executeUnlock(bytes32 requestId_) public {
         uint256 amount_;
+        string memory mid;
         amount_ = requests[requestId_];
-        assert(requests[requestId_] > 0);
+        mid = reqToMemId[requestId_];
   require(balanceOf[msg.sender] >= amount_ && balanceOf[msg.sender] > 0, "Insufficient funds");
+  midIsRedeemed[mid] = true;
   token.safeTransfer(msg.sender, amount_);
   balanceOf[msg.sender] -= amount_;
   totalLocked -= amount_;
