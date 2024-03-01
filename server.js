@@ -21,12 +21,12 @@ app.use((err, req, res, next) => {
   return;
 });
 
-app.get("/validate-unlock/:mid", async (req, res) => {
+app.get("/validate-unlock/:mid/:caller", async (req, res) => {
   try {
-    const { mid } = req.params;
+    const { mid, caller } = req.params;
     const contractState = (await axios.get(`https://api.mem.tech/api/state/djTS6Uh1Id6bAJXkIubAQwrR0ERzCgYdmlLAy28Blag`))?.data?.unlocks;
-    const unlock = contractState.find((req) => req.mid === mid);
-    res.json({amount: 2});
+    const unlock = contractState.find((req) => req.mid === mid && req.address.toLowerCase() == caller.toLowerCase());
+    res.json({amount: unlock.amount * 1e-18});
     return;
 
     return;
