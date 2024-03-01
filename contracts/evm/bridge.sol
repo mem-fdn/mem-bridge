@@ -6,6 +6,7 @@ pragma solidity ^0.8.12;
 
 import {Chainlink, ChainlinkClient} from "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -25,8 +26,7 @@ contract ERC20Staking is ChainlinkClient, ConfirmedOwner {
     bytes32 private jobId;
     uint256 private fee;
     uint public totalLocked = 0;
-
-
+    
     event Lock(address address_, uint amount_);
     event Unlock(address address_, uint amount_);
     event RequestVolume(bytes32 indexed requestId, uint256 volume);
@@ -52,7 +52,10 @@ contract ERC20Staking is ChainlinkClient, ConfirmedOwner {
             this.fulfill.selector
         );
 
-        string memory url = string.concat("https://test-mem-bridge-e73b7d9c5efe.herokuapp.com/validate-unlock/", memid);
+        string memory arg1 = string.concat("https://test-mem-bridge-e73b7d9c5efe.herokuapp.com/validate-unlock/", memid);
+        string memory caller = string.concat("/", Strings.toHexString(uint256(uint160(msg.sender)), 20));
+        string memory url = string.concat(arg1, caller);
+
 
 
         // Set the URL to perform the GET request on
