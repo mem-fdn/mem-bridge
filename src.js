@@ -23,7 +23,8 @@ const {args, name, signature} = log
 assert.equal(signature ,"Lock(address,uint256)")
 
 const target = args[0];
-const amount = ethers.utils.formatEther( args[1] );
+const amount = Number(ethers.utils.formatEther( args[1] )) * 1e18
+// const amount = args[1];
 // console.log(typeof target, amount)
 
 console.log({
@@ -88,6 +89,6 @@ console.log(receipt.logs)
 }
 
 // Call the function to decode transaction logs
-// decodeTransactionLogs("0x47782cb1365e085957c8019e24edb79577236bd55d1fdb6e2b3a4f7d60f29d32", "0x197f818c1313DC58b32D88078ecdfB40EA822614", "0x650FC3477AfDFa14A595fb8E6715623Dc2d45FF1");
+decodeTransactionLogs("0x37b04fabd2dccb71e9aa76e6986703f00f280fd974e47340bc92c91b3909409c", "0x197f818c1313DC58b32D88078ecdfB40EA822614", "0x67C7DA15C8855AfceDc7258469dF7180058C1100");
 
-test("0x959125a2bef1aaed85b5b2dfaa5be385a4f7c1150d21ff40a0c83324bacae183")
+// test("0x959125a2bef1aaed85b5b2dfaa5be385a4f7c1150d21ff40a0c83324bacae183")
