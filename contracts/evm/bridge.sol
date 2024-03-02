@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.12;
 
-
 import {Chainlink, ChainlinkClient} from "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
@@ -23,7 +22,7 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     mapping(string => bool) public midIsRedeemed;
     // map requestId to caller
     mapping(bytes32 => address) public reqToCaller;
-    
+
     // uint256 public volume;
     bool public result;
     bytes32 private jobId;
@@ -40,11 +39,13 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         token = token_;
         setChainlinkToken(0x779877A7B0D9E8603169DdbD7836e478b4624789);
         setChainlinkOracle(0x6090149792dAAeE9D1D568c9f9a6F6B46AA29eFD);
-        jobId = "ca98366cc7314957b8c012c72f05aeeb"; 
+        jobId = "ca98366cc7314957b8c012c72f05aeeb";
         fee = (1 * LINK_DIVISIBILITY) / 10; // 0,1 * 10**18 (Varies by network and job)
     }
 
-    function validateUnlock(string calldata memid) public returns (bytes32 requestId) {
+    function validateUnlock(
+        string calldata memid
+    ) public returns (bytes32 requestId) {
         // memid can be redeemed once
         assert(!midIsRedeemed[memid]);
         // chainlink request
@@ -54,8 +55,14 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
             this.fulfill.selector
         );
         // construct the API req full URL
-        string memory arg1 = string.concat("https://test-mem-bridge-e73b7d9c5efe.herokuapp.com/validate-unlock/", memid);
-        string memory caller = string.concat("/", Strings.toHexString(uint256(uint160(msg.sender)), 20));
+        string memory arg1 = string.concat(
+            "https://test-mem-bridge-e73b7d9c5efe.herokuapp.com/validate-unlock/",
+            memid
+        );
+        string memory caller = string.concat(
+            "/",
+            Strings.toHexString(uint256(uint160(msg.sender)), 20)
+        );
         string memory url = string.concat(arg1, caller);
 
         // Set Chain req object
@@ -90,6 +97,48 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         return _result;
     }
 
+    function lock(uint256 amount_) external {
+        // declare a 0.25% fee
+        fee = (amount_ * 25) / 10000;
+        // ERC20 token transfer
+        token.safeTransferFrom(msg.sender, address(this), amount_);
+        // update balances map
+        balanceOf[msg.sender] += amount_ - fee;
+        // update treasury balance from fee cut
+        balanceOf[treasury] += fee;
+        // update totalLocked amount
+        totalLocked += amount_ - fee;
+        //update treasury cumultive fee
+        cumulativeFees += fee;
+        emit Lock(msg.sender, amount_ - fee);
+    }
+
+    function executeUnlock(bytes32 requestId_) public {
+        uint256 amount_;
+        uint256 net_amount;
+        string memory memid;
+
+        amount_ = requests[requestId_];
+        memid = reqToMemId[requestId_];
+
+        fee = (amount_ * 25) / 10000;
+        net_amount = amount_ - fee;
+
+        require(reqToCaller[requestId_] == msg.sender, "err_invalid_caller");
+        require(
+            balanceOf[msg.sender] >= amount_ && balanceOf[msg.sender] > 0,
+            "Insufficient funds"
+        );
+
+        midIsRedeemed[memid] = true;
+        token.safeTransfer(msg.sender, net_amount);
+        balanceOf[msg.sender] -= amount_;
+        balanceOf[treasury] += fee;
+        cumulativeFees += fee;
+        totalLocked -= net_amount;
+        emit Unlock(msg.sender, net_amount);
+    }
+
     /**
      * Allow withdraw of Link tokens from the contract
      */
@@ -101,41 +150,11 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         );
     }
 
-    function lock(uint256 amount_) external {
-    
-    // declare a 0.25% fee
-    fee = (amount_ * 25) / 10000;
-    // ERC20 token transfer
-    token.safeTransferFrom(msg.sender, address(this), amount_);
-    // update balances map
-    balanceOf[msg.sender] += amount_ - fee;
-    // update treasury balance from fee cut
-    balanceOf[treasury] += fee;
-    // update totalLocked amount
-    totalLocked += amount_ - fee;
-    //update treasury cumultive fee
-    cumulativeFees += fee;
-    emit Lock(msg.sender, amount_ - fee);
+    function withdrawFees() public {
+        uint256 amount = balanceOf[treasury];
+        assert(amount > 0);
+        require(msg.sender == treasury, "err_invalid_caller");
+        token.safeTransfer(treasury, amount);
+        balanceOf[treasury] = 0;
     }
-    
-
-    function executeUnlock(bytes32 requestId_) public {
-        uint256 amount_;
-        string memory memid;
-        fee = (amount_ * 25) / 10000;
-
-        amount_ = requests[requestId_];
-        memid = reqToMemId[requestId_];
-
-        require(reqToCaller[requestId_] == msg.sender, "err_invalid_caller");
-        require(balanceOf[msg.sender] >= amount_ && balanceOf[msg.sender] > 0, "Insufficient funds");
-        
-        midIsRedeemed[memid] = true;
-        token.safeTransfer(msg.sender, amount_- fee);
-        balanceOf[msg.sender] -= amount_ - fee;
-        balanceOf[treasury] += fee;
-        totalLocked -= amount_ - fee;
-        emit Unlock(msg.sender, amount_ - fee);
 }
-}
-
