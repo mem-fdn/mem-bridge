@@ -1,8 +1,9 @@
 {
 	"ticker": "memLINK",
 	"btoken_address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
+	"bridge_address": "0x0752055C1c64Cf3F02B0b30d94F45464a7324238",
 	"balances": {
-		"0x197f818c1313dc58b32d88078ecdfb40ea822614": 3000000000000000000
 	},
+	"mem_molecule": "https://test-mem-bridge-e73b7d9c5efe.herokuapp.com/vu",
 	"unlocks": []
 }

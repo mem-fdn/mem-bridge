@@ -38,10 +38,10 @@ app.get("/vu/:mid/:caller", async (req, res) => {
   }
 });
 
-app.get("/vl/:txid/:caller/:tokenAddr", async (req, res) => {
+app.get("/vl/:txid/:caller/:bridgeAddr", async (req, res) => {
   try {
-    const { txid, caller, tokenAddr } = req.params;
-    const result = await validateLock(txid, caller, tokenAddr);
+    const { txid, caller, bridgeAddr } = req.params;
+    const result = await validateLock(txid, caller, bridgeAddr);
     res.json(result); // unlock.amount
     return;
   } catch (error) {
