@@ -15,7 +15,7 @@ export async function handle(state, action) {
 	if (input.function === "initiateUnlock") {
 		const {caller, sig, amount} = input;
 		// validate caller, sig and amount, etc.
-		ContractAssert(amount >= state.balances[caller],"err");
+		ContractAssert(amount <= state.balances[caller],"err");
 
 		state.unlocks.push({
 			address: caller,

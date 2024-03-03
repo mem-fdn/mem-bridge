@@ -25,6 +25,7 @@ const {args, name, signature} = log
 assert.equal(signature ,"Lock(address,uint256)")
 
 const target = args[0];
+console.log(Number(ethers.utils.formatEther( args[1] )))
 const amount = Number(ethers.utils.formatEther( args[1] )) * BRIDGES_CONTRACTS[tokenContractAddr]?.decimals;
 
 console.log({
