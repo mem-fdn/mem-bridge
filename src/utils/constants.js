@@ -1,5 +1,5 @@
 export const BRIDGES_CONTRACTS = {
-	"0xe50dA0c9C4Da1b55b75836c7eCF83fBeC5faC554" : {
+	"0xa0D3881d1cF41D46A544688E65C88c96b499A627" : {
 		name: "chainlink_token",
 		decimals: 1e18
 	}
