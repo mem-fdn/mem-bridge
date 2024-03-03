@@ -56,7 +56,7 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         );
         // construct the API req full URL
         string memory arg1 = string.concat(
-            "https://test-mem-bridge-e73b7d9c5efe.herokuapp.com/validate-unlock/",
+            "https://test-mem-bridge-e73b7d9c5efe.herokuapp.com/vu/",
             memid
         );
         string memory caller = string.concat(
