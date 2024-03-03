@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.12;
 
+// migrated to call LinkWell chainlink node operator
+
 import {Chainlink, ChainlinkClient} from "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
@@ -27,6 +29,7 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     bool public result;
     bytes32 private jobId;
     uint256 private fee;
+    address private oracleAddress;
     uint public totalLocked = 0;
     address public treasury = 0x747D50C93e6821277805a2B80FE9CBF72EFCe6Cd;
     uint256 public cumulativeFees;
@@ -38,9 +41,9 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     constructor(IERC20 token_) ConfirmedOwner(msg.sender) {
         token = token_;
         setChainlinkToken(0x779877A7B0D9E8603169DdbD7836e478b4624789);
-        setChainlinkOracle(0x6090149792dAAeE9D1D568c9f9a6F6B46AA29eFD);
-        jobId = "ca98366cc7314957b8c012c72f05aeeb";
-        fee = (1 * LINK_DIVISIBILITY) / 10; // 0,1 * 10**18 (Varies by network and job)
+        setChainlinkOracle(0x0FaCf846af22BCE1C7f88D1d55A038F27747eD2B);
+        jobId = "a8356f48569c434eaa4ac5fcb4db5cc0";
+        setFeeInHundredthsOfLink(0); // sepolia is zero $LINK fee
     }
 
     function validateUnlock(
@@ -49,11 +52,11 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         // memid can be redeemed once
         assert(!midIsRedeemed[memid]);
         // chainlink request
-        Chainlink.Request memory req = buildChainlinkRequest(
+        Chainlink.Request memory req = buildOperatorRequest(
             jobId,
-            address(this),
             this.fulfill.selector
         );
+
         // construct the API req full URL
         string memory arg1 = string.concat(
             "https://test-mem-bridge-e73b7d9c5efe.herokuapp.com/vu/",
@@ -66,12 +69,19 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         string memory url = string.concat(arg1, caller);
 
         // Set Chain req object
-        req.add("get", url);
+        req.add("method", "GET");
+        req.add("url", url);
         req.add("path", "amount");
-        req.addInt("times", 1);
+        req.add(
+            "headers",
+            '["content-type", "application/json", "set-cookie", "sid=14A52"]'
+        );
+        req.add("body", "");
+        req.add("contact", "");
+        req.addInt("multiplier", 1);
 
         // Sends the request
-        requestId = sendChainlinkRequest(req, fee);
+        requestId = sendOperatorRequest(req, fee);
         // map requestId to caller
         reqToCaller[requestId] = msg.sender;
         // map the chainlink requestId to memid
@@ -156,5 +166,42 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         require(msg.sender == treasury, "err_invalid_caller");
         token.safeTransfer(treasury, amount);
         balanceOf[treasury] = 0;
+    }
+
+    // updates functions
+
+    // Update oracle address
+    function setOracleAddress(address _oracleAddress) public onlyOwner {
+        oracleAddress = _oracleAddress;
+        setChainlinkOracle(_oracleAddress);
+    }
+    function getOracleAddress() public view onlyOwner returns (address) {
+        return oracleAddress;
+    }
+
+    // Update jobId
+    function setJobId(string memory _jobId) public onlyOwner {
+        jobId = bytes32(bytes(_jobId));
+    }
+    function getJobId() public view onlyOwner returns (string memory) {
+        return string(abi.encodePacked(jobId));
+    }
+
+    // Update fees
+    function setFeeInJuels(uint256 _feeInJuels) public onlyOwner {
+        fee = _feeInJuels;
+    }
+    function setFeeInHundredthsOfLink(
+        uint256 _feeInHundredthsOfLink
+    ) public onlyOwner {
+        setFeeInJuels((_feeInHundredthsOfLink * LINK_DIVISIBILITY) / 100);
+    }
+    function getFeeInHundredthsOfLink()
+        public
+        view
+        onlyOwner
+        returns (uint256)
+    {
+        return (fee * 100) / LINK_DIVISIBILITY;
     }
 }
