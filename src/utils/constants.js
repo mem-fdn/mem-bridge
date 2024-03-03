@@ -5,4 +5,4 @@ export const BRIDGES_CONTRACTS = {
 	}
 }
 
-export const MEM_ORACLE_ID = `5DjxJ9FrhVFq3Ci6wpEW_96wWY13kL8AWx0oO3NE_O4`;
+export const MEM_ORACLE_ID = `MsPy94UNlnZO1owAMwEjvMRSSbWhlqWfF9p7ZTuuiio`;
