@@ -6,6 +6,7 @@ import assert from "node:assert"
 
 export async function validateLock(txid, expectedCaller, tokenContractAddr) {
   try {
+    const normalized = ethers.utils.getAddress;
     assert(tokenContractAddr in BRIDGES_CONTRACTS, true);
     // Set up provider for the Sepolia network
     const provider = new ethers.providers.JsonRpcProvider('https://1rpc.io/sepolia');
@@ -18,7 +19,7 @@ let iface = new ethers.utils.Interface(abi1);
 let log = iface.parseLog(receipt.logs[2]);
 
 assert.equal(receipt.to, tokenContractAddr)
-assert.equal(receipt.from, expectedCaller)
+assert.equal(normalized(receipt.from), normalized(expectedCaller))
 assert.equal(receipt.transactionHash, txid)
 const {args, name, signature} = log
 assert.equal(signature ,"Lock(address,uint256)")
