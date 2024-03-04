@@ -37,7 +37,14 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     event Unlock(address address_, uint256 amount_);
     event Request(bytes32 indexed requestId_, uint256 result_);
 
-    constructor(IERC20 token_, address oracle_, address link_, address treasury_, string memory jobId_, uint256 fee_) ConfirmedOwner(msg.sender) {
+    constructor(
+        IERC20 token_,
+        address oracle_,
+        address link_,
+        address treasury_,
+        string memory jobId_,
+        uint256 fee_
+    ) ConfirmedOwner(msg.sender) {
         token = token_; // 0x779877A7B0D9E8603169DdbD7836e478b4624789 $LINK
         treasury = treasury_; // 0x747D50C93e6821277805a2B80FE9CBF72EFCe6Cd
         setChainlinkToken(link_); // 0x779877A7B0D9E8603169DdbD7836e478b4624789
@@ -52,7 +59,10 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         // memid can be redeemed once
         assert(!midIsRedeemed[memid]);
         // chainlink request
-        Chainlink.Request memory req = buildOperatorRequest(jobId, this.fulfill.selector);
+        Chainlink.Request memory req = buildOperatorRequest(
+            jobId,
+            this.fulfill.selector
+        );
 
         // construct the API req full URL
         string memory arg1 = string.concat(
@@ -69,9 +79,12 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         req.add("method", "GET");
         req.add("url", url);
         req.add("path", "amount");
-        req.add("headers", '["content-type", "application/json", "set-cookie", "sid=14A52"]');
+        req.add(
+            "headers",
+            '["content-type", "application/json", "set-cookie", "sid=14A52"]'
+        );
         req.add("body", "");
-        req.add("contact", ""); 
+        req.add("contact", "");
         req.addInt("multiplier", 1); // MEM store balances in uint256 as well
 
         // Sends the request
@@ -169,7 +182,6 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         balanceOf[treasury] = 0;
     }
 
-
     // util functions
 
     // Update oracle address
@@ -185,19 +197,26 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     function setJobId(string memory _jobId) public onlyOwner {
         jobId = bytes32(bytes(_jobId));
     }
-    
+
     function getJobId() public view onlyOwner returns (string memory) {
         return string(abi.encodePacked(jobId));
     }
-    
+
     // Update fees
     function setFeeInJuels(uint256 _feeInJuels) public onlyOwner {
         fee = _feeInJuels;
     }
-    function setFeeInHundredthsOfLink(uint256 _feeInHundredthsOfLink) public onlyOwner {
+    function setFeeInHundredthsOfLink(
+        uint256 _feeInHundredthsOfLink
+    ) public onlyOwner {
         setFeeInJuels((_feeInHundredthsOfLink * LINK_DIVISIBILITY) / 100);
     }
-    function getFeeInHundredthsOfLink() public view onlyOwner returns (uint256) {
+    function getFeeInHundredthsOfLink()
+        public
+        view
+        onlyOwner
+        returns (uint256)
+    {
         return (fee * 100) / LINK_DIVISIBILITY;
     }
 }
