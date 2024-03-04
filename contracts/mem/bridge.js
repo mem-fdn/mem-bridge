@@ -18,19 +18,20 @@ export async function handle(state, action) {
 
 	if (input.function === "initiateUnlock") {
 		const {caller, sig, amount} = input;
-		_validateEoaSyntax(caller);
-		ContractAssert(Number.isInteger(amount), "err_amount_not_integer");
-		ContractAssert(amount <= state.balances[caller],"err");
 
-		await _moleculeSignatureVerification(caller, sig);
+		const normalizedCaller = _normalizeCaller(caller);
+		ContractAssert(Number.isInteger(amount), "err_amount_not_integer");
+		ContractAssert(amount <= state.balances[normalizedCaller],"err");
+
+		await _moleculeSignatureVerification(normalizedCaller, sig);
 
 		state.unlocks.push({
-			address: caller,
+			address: normalizedCaller,
 			mid: sig,
 			amount: amount
 		});
 
-		state.balances[caller] -= amount;
+		state.balances[normalizedCaller] -= amount;
 
 		return { state };
 	}
