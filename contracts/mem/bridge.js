@@ -11,6 +11,11 @@ export async function handle(state, action) {
 		ContractAssert(req.amount > 0,"err");
 		ContractAssert(!state.locks.includes(txid.toLowerCase()), "err_lock_already_redeemed");
 		state.locks.push(txid.toLowerCase());
+
+		if(!(normalizedCaller in state.balances)) {
+			state.balances[normalizedCaller] = 0;
+		};
+
 		state.balances[normalizedCaller] += req.amount;
 
 		return { state };
