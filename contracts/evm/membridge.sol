@@ -25,25 +25,25 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     // map requestId to caller
     mapping(bytes32 => address) public reqToCaller;
 
-    // uint256 public volume;
-    bool public result;
+    // bool public result;
     bytes32 private jobId;
     uint256 private fee;
     address private oracleAddress;
-    uint public totalLocked = 0;
-    address public treasury = 0x747D50C93e6821277805a2B80FE9CBF72EFCe6Cd;
+    address private treasury;
     uint256 public cumulativeFees;
+    uint256 public totalLocked;
 
     event Lock(address address_, uint256 amount_);
     event Unlock(address address_, uint256 amount_);
     event Request(bytes32 indexed requestId_, uint256 result_);
 
-    constructor(IERC20 token_) ConfirmedOwner(msg.sender) {
-        token = token_;
-        setChainlinkToken(0x779877A7B0D9E8603169DdbD7836e478b4624789);
-        setChainlinkOracle(0x0FaCf846af22BCE1C7f88D1d55A038F27747eD2B);
-        jobId = "a8356f48569c434eaa4ac5fcb4db5cc0";
-        setFeeInHundredthsOfLink(0); // sepolia is zero $LINK fee
+    constructor(IERC20 token_, address oracle_, address link_, address treasury_, string memory jobId_, uint256 fee_) ConfirmedOwner(msg.sender) {
+        token = token_; // 0x779877A7B0D9E8603169DdbD7836e478b4624789 $LINK
+        treasury = treasury_; // 0x747D50C93e6821277805a2B80FE9CBF72EFCe6Cd
+        setChainlinkToken(link_); // 0x779877A7B0D9E8603169DdbD7836e478b4624789
+        setChainlinkOracle(oracle_); // 0x0FaCf846af22BCE1C7f88D1d55A038F27747eD2B
+        setJobId(jobId_); // "a8356f48569c434eaa4ac5fcb4db5cc0"
+        setFeeInHundredthsOfLink(fee_); // sepolia is zero $LINK fee
     }
 
     function validateUnlock(
@@ -52,10 +52,7 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         // memid can be redeemed once
         assert(!midIsRedeemed[memid]);
         // chainlink request
-        Chainlink.Request memory req = buildOperatorRequest(
-            jobId,
-            this.fulfill.selector
-        );
+        Chainlink.Request memory req = buildOperatorRequest(jobId, this.fulfill.selector);
 
         // construct the API req full URL
         string memory arg1 = string.concat(
@@ -72,13 +69,10 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         req.add("method", "GET");
         req.add("url", url);
         req.add("path", "amount");
-        req.add(
-            "headers",
-            '["content-type", "application/json", "set-cookie", "sid=14A52"]'
-        );
+        req.add("headers", '["content-type", "application/json", "set-cookie", "sid=14A52"]');
         req.add("body", "");
-        req.add("contact", "");
-        req.addInt("multiplier", 1);
+        req.add("contact", ""); 
+        req.addInt("multiplier", 1); // MEM store balances in uint256 as well
 
         // Sends the request
         requestId = sendOperatorRequest(req, fee);
@@ -97,12 +91,12 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     ) public recordChainlinkFulfillment(_requestId) returns (uint256) {
         string memory memid;
         // caller can't redeem memid with 0 amount
-        assert(_result > 0);
-        // map the chainlink request result to the corresponding requestId
-        requests[_requestId] = _result;
+        require(_result > 0, "err_zero_amount");
         // retrieve the memid using the requestId and check its redeeming status
         memid = reqToMemId[_requestId];
         require(!midIsRedeemed[memid], "err_mid_redeemed");
+        // map the chainlink request result to the corresponding requestId
+        requests[_requestId] = _result;
         emit Request(_requestId, _result);
         return _result;
     }
@@ -127,24 +121,31 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         uint256 amount_;
         uint256 net_amount;
         string memory memid;
-
+        // retrieve request amount and mem id from maps
         amount_ = requests[requestId_];
         memid = reqToMemId[requestId_];
-
+        // declare the 0.25% fee
         fee = (amount_ * 25) / 10000;
+        // fee calculation
         net_amount = amount_ - fee;
-
+        // validate that the request owner is the function caller
         require(reqToCaller[requestId_] == msg.sender, "err_invalid_caller");
+        // do balances checks
         require(
             balanceOf[msg.sender] >= amount_ && balanceOf[msg.sender] > 0,
             "Insufficient funds"
         );
-
+        // seal this memid and make its reusage not possible
         midIsRedeemed[memid] = true;
+        //transfer the tokens
         token.safeTransfer(msg.sender, net_amount);
+        // update the caller balance
         balanceOf[msg.sender] -= amount_;
+        // update the treasury balance
         balanceOf[treasury] += fee;
+        // update stats: cumulative fees
         cumulativeFees += fee;
+        // update stats: total locked tokens
         totalLocked -= net_amount;
         emit Unlock(msg.sender, net_amount);
     }
@@ -168,7 +169,8 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         balanceOf[treasury] = 0;
     }
 
-    // updates functions
+
+    // util functions
 
     // Update oracle address
     function setOracleAddress(address _oracleAddress) public onlyOwner {
@@ -183,25 +185,19 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     function setJobId(string memory _jobId) public onlyOwner {
         jobId = bytes32(bytes(_jobId));
     }
+    
     function getJobId() public view onlyOwner returns (string memory) {
         return string(abi.encodePacked(jobId));
     }
-
+    
     // Update fees
     function setFeeInJuels(uint256 _feeInJuels) public onlyOwner {
         fee = _feeInJuels;
     }
-    function setFeeInHundredthsOfLink(
-        uint256 _feeInHundredthsOfLink
-    ) public onlyOwner {
+    function setFeeInHundredthsOfLink(uint256 _feeInHundredthsOfLink) public onlyOwner {
         setFeeInJuels((_feeInHundredthsOfLink * LINK_DIVISIBILITY) / 100);
     }
-    function getFeeInHundredthsOfLink()
-        public
-        view
-        onlyOwner
-        returns (uint256)
-    {
+    function getFeeInHundredthsOfLink() public view onlyOwner returns (uint256) {
         return (fee * 100) / LINK_DIVISIBILITY;
     }
 }
