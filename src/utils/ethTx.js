@@ -10,9 +10,12 @@ export async function validateLock(txid, expectedCaller, tokenContractAddr) {
     assert(tokenContractAddr in BRIDGES_CONTRACTS, true);
     // Set up provider for the Sepolia network
     const provider = new ethers.providers.JsonRpcProvider('https://1rpc.io/sepolia');
+    const currentBlockNumber = await provider.getBlockNumber()
+    // console.log(currentBlockNumber)
 
 
 const receipt = await provider.getTransactionReceipt(txid);
+console.log(receipt)
 let abi1 = [ "event Lock (address target, uint256 amount)" ];
 let iface = new ethers.utils.Interface(abi1);
 
@@ -20,12 +23,14 @@ let log = iface.parseLog(receipt.logs[2]);
 
 assert.equal(receipt.to, tokenContractAddr)
 assert.equal(normalized(receipt.from), normalized(expectedCaller))
-assert.equal(receipt.transactionHash, txid)
+assert.equal(receipt.transactionHash, txid);
+assert.equal(Boolean(receipt.blockNumber), true);
+assert.equal(receipt.blockNumber + 3 < currentBlockNumber, true);
 const {args, name, signature} = log
 assert.equal(signature ,"Lock(address,uint256)")
 
 const target = args[0];
-console.log(Number(ethers.utils.formatEther( args[1] )))
+// console.log(Number(ethers.utils.formatEther( args[1] )))
 const amount = Number(ethers.utils.formatEther( args[1] )) * BRIDGES_CONTRACTS[tokenContractAddr]?.decimals;
 
 console.log({
