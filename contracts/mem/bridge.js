@@ -41,6 +41,26 @@ export async function handle(state, action) {
 		return { state };
 	}
 
+	if (input.function === "transfer") {
+		const { caller, sig, target, amount } = input;
+		const normalizedCaller = _normalizeCaller(caller);
+		const normalizedTarget = _normalizeCaller(target);
+
+		ContractAssert(Number.isInteger(amount), "err_amount_not_integer");
+		ContractAssert(amount <= state.balances[normalizedCaller], "err");
+
+		await _moleculeSignatureVerification(normalizedCaller, sig);
+
+		if (!(normalizedTarget in state.balances)) {
+			state.balances[normalizedTarget] = 0;
+		};
+
+		state.balances[normalizedTarget] += amount;
+		state.balances[normalizedCaller] -= amount;
+
+		return { state };
+	}
+
   async function _moleculeSignatureVerification(caller, signature) {
     try {
 
