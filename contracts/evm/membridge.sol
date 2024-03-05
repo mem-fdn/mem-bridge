@@ -2,11 +2,10 @@
 pragma solidity ^0.8.12;
 
 // migrated to call LinkWell chainlink node operator
-
-import {Chainlink, ChainlinkClient} from "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
-import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
+import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
+import {Chainlink, ChainlinkClient} from "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract MemBridge is ChainlinkClient, ConfirmedOwner {
@@ -54,10 +53,10 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     }
 
     function validateUnlock(
-        string calldata memid
+        string calldata _memid
     ) public returns (bytes32 requestId) {
         // memid can be redeemed once
-        assert(!midIsRedeemed[memid]);
+        assert(!midIsRedeemed[_memid]);
         // chainlink request
         Chainlink.Request memory req = buildOperatorRequest(
             jobId,
@@ -65,10 +64,7 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         );
 
         // construct the API req full URL
-        string memory arg1 = string.concat(
-            "https://test-mem-bridge-e73b7d9c5efe.herokuapp.com/vu/",
-            memid
-        );
+        string memory arg1 = string.concat("https://0xmem.net/vu/", _memid);
         string memory caller = string.concat(
             "/",
             Strings.toHexString(uint256(uint160(msg.sender)), 20)
@@ -84,7 +80,7 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
             '["content-type", "application/json", "set-cookie", "sid=14A52"]'
         );
         req.add("body", "");
-        req.add("contact", "");
+        req.add("contact", "https://t.me/ + add later");
         req.addInt("multiplier", 1); // MEM store balances in uint256 as well
 
         // Sends the request
@@ -92,9 +88,9 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         // map requestId to caller
         reqToCaller[requestId] = msg.sender;
         // map the chainlink requestId to memid
-        reqToMemId[requestId] = memid;
+        reqToMemId[requestId] = _memid;
         // map the memid redeeming status to false
-        midIsRedeemed[memid] = false;
+        midIsRedeemed[_memid] = false;
         return requestId;
     }
 
@@ -114,38 +110,38 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         return _result;
     }
 
-    function lock(uint256 amount_) external {
+    function lock(uint256 _amount) external {
         // declare a 0.25% fee
-        fee = (amount_ * 25) / 10000;
+        fee = (_amount * 25) / 10000;
         // ERC20 token transfer
-        token.safeTransferFrom(msg.sender, address(this), amount_);
+        token.safeTransferFrom(msg.sender, address(this), _amount);
         // update balances map
-        balanceOf[msg.sender] += amount_ - fee;
+        balanceOf[msg.sender] += _amount - fee;
         // update treasury balance from fee cut
         balanceOf[treasury] += fee;
         // update totalLocked amount
-        totalLocked += amount_ - fee;
+        totalLocked += _amount - fee;
         //update treasury cumultive fee
         cumulativeFees += fee;
-        emit Lock(msg.sender, amount_ - fee);
+        emit Lock(msg.sender, _amount - fee);
     }
 
-    function executeUnlock(bytes32 requestId_) public {
-        uint256 amount_;
+    function executeUnlock(bytes32 _requestId) public {
+        uint256 amount;
         uint256 net_amount;
         string memory memid;
         // retrieve request amount and mem id from maps
-        amount_ = requests[requestId_];
-        memid = reqToMemId[requestId_];
+        amount = requests[_requestId];
+        memid = reqToMemId[_requestId];
         // declare the 0.25% fee
-        fee = (amount_ * 25) / 10000;
+        fee = (amount * 25) / 10000;
         // fee calculation
-        net_amount = amount_ - fee;
+        net_amount = amount - fee;
         // validate that the request owner is the function caller
-        require(reqToCaller[requestId_] == msg.sender, "err_invalid_caller");
+        require(reqToCaller[_requestId] == msg.sender, "err_invalid_caller");
         // do balances checks
         require(
-            balanceOf[msg.sender] >= amount_ && balanceOf[msg.sender] > 0,
+            balanceOf[msg.sender] >= amount && balanceOf[msg.sender] > 0,
             "Insufficient funds"
         );
         // seal this memid and make its reusage not possible
@@ -153,7 +149,7 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         //transfer the tokens
         token.safeTransfer(msg.sender, net_amount);
         // update the caller balance
-        balanceOf[msg.sender] -= amount_;
+        balanceOf[msg.sender] -= amount;
         // update the treasury balance
         balanceOf[treasury] += fee;
         // update stats: cumulative fees
