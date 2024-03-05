@@ -24,12 +24,19 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     // map requestId to caller
     mapping(bytes32 => address) public reqToCaller;
 
-    // bool public result;
+    // chainlink jobId
     bytes32 private jobId;
-    uint256 private fee;
+    // chainlink oracle fee
+    uint256 private oracleFee;
+    // bridge fee hundredths of a percent
+    uint256 private bridgeFee;
+    // chainlink oracle address
     address private oracleAddress;
+    // treasury EOA
     address private treasury;
+    // stats: accumulated fees
     uint256 public cumulativeFees;
+    // stats: total locked ERC20s
     uint256 public totalLocked;
 
     event Lock(address address_, uint256 amount_);
@@ -37,19 +44,21 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     event Request(bytes32 indexed requestId_, uint256 result_);
 
     constructor(
-        IERC20 token_,
-        address oracle_,
-        address link_,
+        IERC20 _btoken,
+        address _oracleAddress,
+        address _linkTokenAddr,
         address treasury_,
         string memory jobId_,
-        uint256 fee_
+        uint256 _ofee,
+        uint256 _bfee
     ) ConfirmedOwner(msg.sender) {
-        token = token_; // 0x779877A7B0D9E8603169DdbD7836e478b4624789 $LINK
+        token = _btoken; // 0x779877A7B0D9E8603169DdbD7836e478b4624789 $LINK
         treasury = treasury_; // 0x747D50C93e6821277805a2B80FE9CBF72EFCe6Cd
-        setChainlinkToken(link_); // 0x779877A7B0D9E8603169DdbD7836e478b4624789
-        setChainlinkOracle(oracle_); // 0x0FaCf846af22BCE1C7f88D1d55A038F27747eD2B
+        setChainlinkToken(_linkTokenAddr); // 0x779877A7B0D9E8603169DdbD7836e478b4624789
+        setChainlinkOracle(_oracleAddress); // 0x0FaCf846af22BCE1C7f88D1d55A038F27747eD2B
         setJobId(jobId_); // "a8356f48569c434eaa4ac5fcb4db5cc0"
-        setFeeInHundredthsOfLink(fee_); // sepolia is zero $LINK fee
+        setFeeInHundredthsOfLink(_ofee); // sepolia is zero $LINK fee
+        bridgeFee = _bfee; // 0.25% for the launch so uint256(25)
     }
 
     function validateUnlock(
@@ -84,7 +93,7 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         req.addInt("multiplier", 1); // MEM store balances in uint256 as well
 
         // Sends the request
-        requestId = sendOperatorRequest(req, fee);
+        requestId = sendOperatorRequest(req, oracleFee);
         // map requestId to caller
         reqToCaller[requestId] = msg.sender;
         // map the chainlink requestId to memid
@@ -111,32 +120,29 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     }
 
     function lock(uint256 _amount) external {
-        // declare a 0.25% fee
-        fee = (_amount * 25) / 10000;
+        uint256 net_amount = computeNetAmount(_amount);
+        uint256 generateFees = _amount - net_amount;
         // ERC20 token transfer
         token.safeTransferFrom(msg.sender, address(this), _amount);
         // update balances map
-        balanceOf[msg.sender] += _amount - fee;
+        balanceOf[msg.sender] += net_amount;
         // update treasury balance from fee cut
-        balanceOf[treasury] += fee;
+        balanceOf[treasury] += generateFees;
         // update totalLocked amount
-        totalLocked += _amount - fee;
+        totalLocked += net_amount;
         //update treasury cumultive fee
-        cumulativeFees += fee;
-        emit Lock(msg.sender, _amount - fee);
+        cumulativeFees += generateFees;
+        // emit event
+        emit Lock(msg.sender, net_amount);
     }
 
     function executeUnlock(bytes32 _requestId) public {
-        uint256 amount;
-        uint256 net_amount;
-        string memory memid;
         // retrieve request amount and mem id from maps
-        amount = requests[_requestId];
-        memid = reqToMemId[_requestId];
-        // declare the 0.25% fee
-        fee = (amount * 25) / 10000;
+        uint256 amount = requests[_requestId];
+        string memory memid = reqToMemId[_requestId];
         // fee calculation
-        net_amount = amount - fee;
+        uint256 net_amount = computeNetAmount(amount);
+        uint256 generateFees = amount - net_amount;
         // validate that the request owner is the function caller
         require(reqToCaller[_requestId] == msg.sender, "err_invalid_caller");
         // do balances checks
@@ -146,17 +152,23 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         );
         // seal this memid and make its reusage not possible
         midIsRedeemed[memid] = true;
-        //transfer the tokens
-        token.safeTransfer(msg.sender, net_amount);
         // update the caller balance
         balanceOf[msg.sender] -= amount;
         // update the treasury balance
-        balanceOf[treasury] += fee;
+        balanceOf[treasury] += generateFees;
         // update stats: cumulative fees
-        cumulativeFees += fee;
+        cumulativeFees += generateFees;
         // update stats: total locked tokens
         totalLocked -= net_amount;
+        //transfer the tokens
+        token.safeTransfer(msg.sender, net_amount);
+        // emit event
         emit Unlock(msg.sender, net_amount);
+    }
+
+    function computeNetAmount(uint256 _amount) internal view returns (uint256) {
+        uint256 bfee = (_amount * bridgeFee) / 10000;
+        return _amount - bfee;
     }
 
     /**
@@ -200,7 +212,7 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
 
     // Update fees
     function setFeeInJuels(uint256 _feeInJuels) public onlyOwner {
-        fee = _feeInJuels;
+        oracleFee = _feeInJuels;
     }
     function setFeeInHundredthsOfLink(
         uint256 _feeInHundredthsOfLink
@@ -213,6 +225,6 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         onlyOwner
         returns (uint256)
     {
-        return (fee * 100) / LINK_DIVISIBILITY;
+        return (oracleFee * 100) / LINK_DIVISIBILITY;
     }
 }
