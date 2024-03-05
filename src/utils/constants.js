@@ -5,8 +5,7 @@ export const BRIDGES_CONTRACTS = {
 	}
 }
 
-export const MEM_ORACLE_ID = `UqRY2yV31iWuGc2QZD2_jYIh8IqaZ7aukxob8dDDfqY`;
+export const MEM_ORACLE_ID = `Oot61VMP3PYKlc2Dnd8J0Iht78P8oqNWOlGpZqGBRug`;
 
 export const RPC_URL = `https://1rpc.io/sepolia`;
 
-https://molext1.com/solana/spl/XMEHm7wePVSrK8QanGtqBBdEgYmL5CFLvEtCcw92kCVCSzQgmkr7TeWBSLnpSovDmSokyyXC7pnhYE88HSumR7E/7EYnhQoR9YM3N7UoaKRoA44Uy8JeaZV3qyouov87awMs/JX73ZkmUZysvbDiHMQuJw9EFz27xys4nLA74wzp99gn/9FJZKLghjhnzXyxvm13v45tpuXj2VCFBxdjpffsuJ5GK
