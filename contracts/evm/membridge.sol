@@ -1,28 +1,32 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.12;
 
-// migrated to call LinkWell chainlink node operator
+// Imports
 import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 import {Chainlink, ChainlinkClient} from "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+/// @title MemBridge contract
+/// @notice crosschain ERC20 token bridge for MEM serverless functions
+/// @dev Inherits from ERC20 for token functionality, Ownable for ownership management, and ChainlinkClient for oracle
+/// @author charmful0x
+/// @custom:security-contact darwin@decent.land
+
 contract MemBridge is ChainlinkClient, ConfirmedOwner {
     using SafeERC20 for IERC20;
     using Chainlink for Chainlink.Request;
 
     IERC20 public immutable token;
-    // locked ERC20 balances
-    mapping(address => uint) public balanceOf;
-    // unlocking requests amount (result)
-    mapping(bytes32 => uint256) public requests;
-    // mapping unlockIds to MEM IDs
-    mapping(bytes32 => string) public reqToMemId;
-    // mapping MEM ID to its redeeming status
-    mapping(string => bool) public midIsRedeemed;
-    // map requestId to caller
-    mapping(bytes32 => address) public reqToCaller;
+    
+    // Events declaration
+
+    event Lock(address address_, uint256 amount_);
+    event Unlock(address address_, uint256 amount_);
+    event Request(bytes32 indexed requestId_, uint256 result_);
+
+    // State variables declaration
 
     // chainlink jobId
     bytes32 private jobId;
@@ -38,29 +42,51 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     uint256 public cumulativeFees;
     // stats: total locked ERC20s
     uint256 public totalLocked;
+    
+    // Maps declaration
 
-    event Lock(address address_, uint256 amount_);
-    event Unlock(address address_, uint256 amount_);
-    event Request(bytes32 indexed requestId_, uint256 result_);
+    // locked ERC20 balances
+    mapping(address => uint) public balanceOf;
+    // unlocking requests amount (result)
+    mapping(bytes32 => uint256) public requests;
+    // mapping unlockIds to MEM IDs
+    mapping(bytes32 => string) public reqToMemId;
+    // mapping MEM ID to its redeeming status
+    mapping(string => bool) public midIsRedeemed;
+    // map requestId to caller
+    mapping(bytes32 => address) public reqToCaller;
 
+    /// @notice Constructor to initialize the MemBridge contract
+    /// @param _btoken The address of the ERC20 token to bridge
+    /// @param _oracleAddress The address of the chainlink node/oracle
+    /// @param _linkTokenAddr The address of $LINK token on the contract deployed chain
+    /// @param _treasury The address of the bridge's treasury that collects fees
+    /// @param _jobId The oracle jobId
+    /// @param _ofee The oracle $LINK fee
+    /// @param _bfee The bridge service fee in hundredths of a percent
     constructor(
         IERC20 _btoken,
         address _oracleAddress,
         address _linkTokenAddr,
-        address treasury_,
-        string memory jobId_,
+        address _treasury,
+        string memory _jobId,
         uint256 _ofee,
         uint256 _bfee
     ) ConfirmedOwner(msg.sender) {
         token = _btoken; // 0x779877A7B0D9E8603169DdbD7836e478b4624789 $LINK
-        treasury = treasury_; // 0x747D50C93e6821277805a2B80FE9CBF72EFCe6Cd
+        treasury = _treasury; // 0x747D50C93e6821277805a2B80FE9CBF72EFCe6Cd
         setChainlinkToken(_linkTokenAddr); // 0x779877A7B0D9E8603169DdbD7836e478b4624789
         setChainlinkOracle(_oracleAddress); // 0x0FaCf846af22BCE1C7f88D1d55A038F27747eD2B
-        setJobId(jobId_); // "a8356f48569c434eaa4ac5fcb4db5cc0"
+        setJobId(_jobId); // "a8356f48569c434eaa4ac5fcb4db5cc0"
         setFeeInHundredthsOfLink(_ofee); // sepolia is zero $LINK fee
         bridgeFee = _bfee; // 0.25% for the launch so uint256(25)
     }
 
+    /// @notice The function that reads data from MEM partof the bridge
+    /// @dev After issuing an unlock on MEM function, use the memid of that unlock req to fetch the unlockable amount
+    /// This function send the request to the LinkWellNodes Chainlink's oracle and receive the amount that the user 
+    /// can unlock for a given mem id.
+    /// @param _memid The mem id of the issued unlock on the MEM serverless function
     function validateUnlock(
         string calldata _memid
     ) public returns (bytes32 requestId) {
@@ -102,7 +128,10 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         midIsRedeemed[_memid] = false;
         return requestId;
     }
-
+    /// @notice This function is called by the Chainlink oracle to resolve a request
+    /// @dev The fulfill function is self-desriptive within the Chainlink usage context
+    /// @param _requestId The oracle request ID
+    /// @param _result The result of the requestId resolved by the oracle
     function fulfill(
         bytes32 _requestId,
         uint256 _result
@@ -119,6 +148,9 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         return _result;
     }
 
+    /// @notice The lock function allows the users to lock the _btoken bond to this contract
+    /// @dev Lock _btoken to the caller's address
+    /// @param _amount The amount of tokens to lock 
     function lock(uint256 _amount) external {
         uint256 net_amount = computeNetAmount(_amount);
         uint256 generateFees = _amount - net_amount;
@@ -136,6 +168,10 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         emit Lock(msg.sender, net_amount);
     }
 
+    /// @notice This function is called after the validatUnlock() using the requestId of the memid
+    /// @dev After calling validateUnlock() and mapping the requestId to amount, and requestId to memid,
+    /// grab the requestId and call this function to finalize the TX lifecycle of a balance unlock action
+    /// @param _requestId The requestId mapping the amount of tokens to unlock
     function executeUnlock(bytes32 _requestId) public {
         // retrieve request amount and mem id from maps
         uint256 amount = requests[_requestId];
@@ -165,15 +201,16 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         // emit event
         emit Unlock(msg.sender, net_amount);
     }
-
+    /// @notice Calculate the net amount upon lock or unlock
+    /// @param _amount the lock/unlock amount (from requestId)
     function computeNetAmount(uint256 _amount) internal view returns (uint256) {
         uint256 bfee = (_amount * bridgeFee) / 10000;
         return _amount - bfee;
     }
 
-    /**
-     * Allow withdraw of Link tokens from the contract
-     */
+    /// @notice Withdraw all of the $LINK token held by the contract (which is used to cover
+    /// the oracle calls fees)
+    /// @dev This function is called only by the contract owner
     function withdrawLink() public onlyOwner {
         LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
         require(
@@ -181,7 +218,10 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
             "Unable to transfer"
         );
     }
-
+    
+    /// @notice Withdraw the bridging service fees generated by contract usage
+    /// to the treasury EOA.
+    /// @dev Can be only called by the treasury EOA 
     function withdrawFees() public {
         uint256 amount = balanceOf[treasury];
         assert(amount > 0);
@@ -190,35 +230,57 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         balanceOf[treasury] = 0;
     }
 
-    // util functions
+    /**
+        Util Functions
+    */
 
-    // Update oracle address
+    /// @notice Update oracle address
+    /// @dev Can be only called by contract owner
+    /// @param _oracleAddress The new oracle address
     function setOracleAddress(address _oracleAddress) public onlyOwner {
         oracleAddress = _oracleAddress;
         setChainlinkOracle(_oracleAddress);
     }
+
+    /// @notice retrieve currently in-use oracle address
+    /// @dev Can be only called by contract owner
     function getOracleAddress() public view onlyOwner returns (address) {
         return oracleAddress;
     }
 
-    // Update jobId
+    /// @notice Update oracle's jobId
+    /// @dev Can be only called by contract owner
+    /// @param _jobId The jobId string identifier
     function setJobId(string memory _jobId) public onlyOwner {
         jobId = bytes32(bytes(_jobId));
     }
 
+    /// @notice Retrieve currently in-use jobId
+    /// @dev Can be only called by contract owner
     function getJobId() public view onlyOwner returns (string memory) {
         return string(abi.encodePacked(jobId));
     }
 
-    // Update fees
+    /// @notice Update oracle's fee variable
+    /// @dev Can be only called by contract owner
+    /// @param _feeInJuels Fees in Juels
     function setFeeInJuels(uint256 _feeInJuels) public onlyOwner {
         oracleFee = _feeInJuels;
     }
+
+    /// @notice Update oracle's fee variable
+    /// @dev Can be only called by contract owner. This function
+    /// is the main used function in the oracle's setup within
+    /// this contract.
+    /// @param _feeInHundredthsOfLink Fees in hundredth of $LINK (18 decimals)
     function setFeeInHundredthsOfLink(
         uint256 _feeInHundredthsOfLink
     ) public onlyOwner {
         setFeeInJuels((_feeInHundredthsOfLink * LINK_DIVISIBILITY) / 100);
     }
+
+    /// @notice Get the oracleFee state variable fee value
+    /// @dev Only called by contract owner
     function getFeeInHundredthsOfLink()
         public
         view
