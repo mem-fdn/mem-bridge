@@ -32,7 +32,7 @@ app.get("/vu/:mid/:caller", async (req, res) => {
     res.json(amount); // unlock.amount
     return;
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.json({ amount: 0 });
     return;
   }
@@ -45,7 +45,7 @@ app.get("/vl/:txid/:caller/:bridgeAddr", async (req, res) => {
     res.json(result); // unlock.amount
     return;
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.json({ caller: null });
     return;
   }

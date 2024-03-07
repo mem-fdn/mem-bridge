@@ -1,69 +1,77 @@
 export async function handle(state, action) {
-	const input = action.input;
+  const input = action.input;
 
-	if(input.function === "executeLock") {
-		// sig is not needed here as its already validated on EVM side
-		// so without a sig,the dapp can invoke `executeLock`on behalf of user
-		const { txid, caller } = input;
-		const normalizedCaller =  _normalizeCaller(caller);
-		const req = (await EXM.deterministicFetch(`${state.mem_molecule}/${txid}/${normalizedCaller}/${state.bridge_address}`))?.asJSON();
-		ContractAssert(req.caller.toLowerCase() == normalizedCaller, "err");
-		ContractAssert(req.amount > 0,"err");
-		ContractAssert(!state.locks.includes(txid.toLowerCase()), "err_lock_already_redeemed");
-		state.locks.push(txid.toLowerCase());
+  if (input.function === "executeLock") {
+    // sig is not needed here as its already validated on EVM side
+    // so without a sig,the dapp can invoke `executeLock`on behalf of user
+    const { txid, caller } = input;
+    const normalizedCaller = _normalizeCaller(caller);
+    const req = (
+      await EXM.deterministicFetch(
+        `${state.mem_molecule}/${txid}/${normalizedCaller}/${state.bridge_address}`,
+      )
+    )?.asJSON();
+    ContractAssert(req.caller.toLowerCase() == normalizedCaller, "err");
+    ContractAssert(req.amount > 0, "err");
+    ContractAssert(
+      !state.locks.includes(txid.toLowerCase()),
+      "err_lock_already_redeemed",
+    );
+    state.locks.push(txid.toLowerCase());
 
-		if(!(normalizedCaller in state.balances)) {
-			state.balances[normalizedCaller] = 0;
-		};
+    if (!(normalizedCaller in state.balances)) {
+      state.balances[normalizedCaller] = 0;
+    }
 
-		state.balances[normalizedCaller] += req.amount;
+    state.balances[normalizedCaller] += req.amount;
 
-		return { state };
-	}
+    return { state };
+  }
 
-	if (input.function === "initiateUnlock") {
-		const {caller, sig, amount} = input;
+  if (input.function === "initiateUnlock") {
+    const { caller, sig, amount } = input;
 
-		const normalizedCaller = _normalizeCaller(caller);
-		ContractAssert(Number.isInteger(amount), "err_amount_not_integer");
-		ContractAssert(amount <= state.balances[normalizedCaller],"err");
+    const normalizedCaller = _normalizeCaller(caller);
+    ContractAssert(Number.isInteger(amount), "err_amount_not_integer");
+    ContractAssert(amount <= state.balances[normalizedCaller], "err");
 
-		await _moleculeSignatureVerification(normalizedCaller, sig);
+    await _moleculeSignatureVerification(normalizedCaller, sig);
 
-		state.unlocks.push({
-			address: normalizedCaller,
-			mid: sig,
-			amount: amount
-		});
+    state.unlocks.push({
+      address: normalizedCaller,
+      mid: sig,
+      amount: amount,
+    });
 
-		state.balances[normalizedCaller] -= amount;
+    state.balances[normalizedCaller] -= amount;
 
-		return { state };
-	}
+    return { state };
+  }
 
-	if (input.function === "transfer") {
-		const { caller, sig, target, amount } = input;
-		const normalizedCaller = _normalizeCaller(caller);
-		const normalizedTarget = _normalizeCaller(target);
+  if (input.function === "transfer") {
+    const { caller, sig, target, amount } = input;
 
-		ContractAssert(Number.isInteger(amount), "err_amount_not_integer");
-		ContractAssert(amount <= state.balances[normalizedCaller], "err");
+    const normalizedCaller = _normalizeCaller(caller);
+    const normalizedTarget = _normalizeCaller(target);
 
-		await _moleculeSignatureVerification(normalizedCaller, sig);
+    ContractAssert(Number.isInteger(amount), "err_amount_not_integer");
+    ContractAssert(amount <= state.balances[normalizedCaller], "err");
+    ContractAssert(normalizedCaller !== normalizedTarget, "err_self_transfer");
 
-		if (!(normalizedTarget in state.balances)) {
-			state.balances[normalizedTarget] = 0;
-		};
+    await _moleculeSignatureVerification(normalizedCaller, sig);
 
-		state.balances[normalizedTarget] += amount;
-		state.balances[normalizedCaller] -= amount;
+    if (!(normalizedTarget in state.balances)) {
+      state.balances[normalizedTarget] = 0;
+    }
 
-		return { state };
-	}
+    state.balances[normalizedTarget] += amount;
+    state.balances[normalizedCaller] -= amount;
+
+    return { state };
+  }
 
   async function _moleculeSignatureVerification(caller, signature) {
     try {
-
       ContractAssert(
         !state.signatures.includes(signature),
         "ERROR_SIGNATURE_ALREADY_USED",
@@ -90,7 +98,7 @@ export async function handle(state, action) {
   }
 
   function _normalizeCaller(address) {
-  	_validateEoaSyntax(address);
-  	return address.toLowerCase();
+    _validateEoaSyntax(address);
+    return address.toLowerCase();
   }
 }
