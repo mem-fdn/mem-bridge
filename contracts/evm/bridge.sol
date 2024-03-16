@@ -161,8 +161,6 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         // to retrieve the memid associated with a requestId, users should
         // use the reqToMemId map
         MemIdToReq[_memid] = requestId;
-        // map the memid redeeming status to false
-        midIsRedeemed[_memid] = false;
         return requestId;
     }
     /// @notice This function is called by the Chainlink oracle to resolve a request
@@ -242,7 +240,7 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         // update stats: cumulative fees
         cumulativeFees += generateFees;
         // update stats: total locked tokens
-        totalLocked -= net_amount;
+        totalLocked -= amount;
         //transfer the tokens
         token.safeTransfer(msg.sender, net_amount);
         // emit event
