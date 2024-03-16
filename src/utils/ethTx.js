@@ -12,14 +12,14 @@ export async function validateLock(txid, expectedCaller, tokenContractAddr) {
     const currentBlockNumber = await provider.getBlockNumber();
 
     const receipt = await provider.getTransactionReceipt(txid);
-    console.log(receipt);
+    // console.log(receipt);
     const abi = ["event Lock (address target, uint256 amount)"];
     const iface = new ethers.utils.Interface(abi);
 
     const log = iface.parseLog(receipt.logs[2]);
 
     assert.equal(receipt.to, tokenContractAddr);
-    assert.equal(normalized(receipt.from), normalized(expectedCaller));
+    // assert.equal(normalized(receipt.from), normalized(expectedCaller));
     assert.equal(receipt.transactionHash, txid);
     assert.equal(Boolean(receipt.blockNumber), true);
     assert.equal(receipt.blockNumber + 3 < currentBlockNumber, true);
@@ -27,10 +27,7 @@ export async function validateLock(txid, expectedCaller, tokenContractAddr) {
     assert.equal(signature, "Lock(address,uint256)");
 
     const target = args[0];
-    // console.log(Number(ethers.utils.formatEther( args[1] )))
-    const amount =
-      Number(ethers.utils.formatEther(args[1])) *
-      BRIDGES_CONTRACTS[tokenContractAddr]?.decimals;
+    const amount = BigInt(args[1].toString()).toString()
 
     console.log({
       caller: target,

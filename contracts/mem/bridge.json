@@ -1,9 +1,9 @@
 {
   "ticker": "memLINK",
   "btoken_address": "0x779877A7B0D9E8603169DdbD7836e478b4624789",
-  "bridge_address": "0x672FdBa986dbaBCFaC8A4321380dddeC473F8942",
+  "bridge_address": "0xe1225ecbBDAB62Eba6F2Bc4366B7A6943F07A5e0",
   "balances": {},
-  "mem_molecule": "https://0xmem.net/vl",
+  "mem_molecule": "https://mem-bridge-audit-0a0d08c8e33a.herokuapp.com/vl",
   "evm_molecule_endpoint": "http://evm.molecule.sh",
   "counter": 0,
   "sig_message": "membridge-link::",

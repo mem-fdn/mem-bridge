@@ -87,7 +87,7 @@ This section elucidates the transaction lifecycle of a lock-mint process:
 - The contract utilizes [LinkWell Nodes](https://linkwellnodes.io/) as the Chainlink oracle provider.
 - The `constructor()` function is commented with initial values used for testing purposes.
 - The bridge has been tested to bridge Sepolia Chainlink token ($LINK - `0x779877A7B0D9E8603169DdbD7836e478b4624789`).
-- The current repository version has been tested using [0x672FdBa986dbaBCFaC8A4321380dddeC473F8942](https://sepolia.etherscan.io/address/0x672FdBa986dbaBCFaC8A4321380dddeC473F8942) for `bridge.sol`, [Oot61VMP3PYKlc2Dnd8J0Iht78P8oqNWOlGpZqGBRug](https://api.mem.tech/api/state/Oot61VMP3PYKlc2Dnd8J0Iht78P8oqNWOlGpZqGBRug) for `bridge.js`, and [0xmem.net](https://0xmem.net) for the API called by Chainlink.
+- The current repository version has been tested using [0xe1225ecbBDAB62Eba6F2Bc4366B7A6943F07A5e0](https://sepolia.etherscan.io/address/0xe1225ecbBDAB62Eba6F2Bc4366B7A6943F07A5e0) for `bridge.sol`, [KHuOj-dvS7VLfuTNKz3GBr2LmwlP2kBfDc_4iFoRzKw](https://api.mem.tech/api/state/KHuOj-dvS7VLfuTNKz3GBr2LmwlP2kBfDc_4iFoRzKw) for `bridge.js`, and [0xmem.net](https://0xmem.net) for the API called by Chainlink.
 
 ## Disclaimer
 

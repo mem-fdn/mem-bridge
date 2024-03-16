@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.12;
+pragma solidity 0.8.25;
 
 // Imports
 import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
@@ -19,7 +19,7 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     using Chainlink for Chainlink.Request;
 
     IERC20 public immutable token;
-    
+
     // Events declaration
 
     event Lock(address address_, uint256 amount_);
@@ -32,17 +32,25 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     bytes32 private jobId;
     // chainlink oracle fee
     uint256 private oracleFee;
-    // bridge fee hundredths of a percent
-    uint256 private bridgeFee;
+    // bridge in tokens amount
+    uint256 private bridgeLockFee;
     // chainlink oracle address
     address private oracleAddress;
     // treasury EOA
     address private treasury;
+    // validateUnlock EOA
+    address private cronjobAddress;
+    // min bridgeable amount
+    uint256 private minBamount;
+    // unlocking flat fee in token amount
+    uint256 private unlockFlatFee;
+    // the base endpoint of the MEM Bridge
+    string baseEndpoint;
     // stats: accumulated fees
     uint256 public cumulativeFees;
     // stats: total locked ERC20s
     uint256 public totalLocked;
-    
+
     // Maps declaration
 
     // locked ERC20 balances
@@ -51,6 +59,8 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     mapping(bytes32 => uint256) public requests;
     // mapping unlockIds to MEM IDs
     mapping(bytes32 => string) public reqToMemId;
+    // mapping unlockIds to MEM IDs
+    mapping(string => bytes32) public MemIdToReq;
     // mapping MEM ID to its redeeming status
     mapping(string => bool) public midIsRedeemed;
     // map requestId to caller
@@ -60,36 +70,59 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     /// @param _btoken The address of the ERC20 token to bridge
     /// @param _oracleAddress The address of the chainlink node/oracle
     /// @param _linkTokenAddr The address of $LINK token on the contract deployed chain
-    /// @param _treasury The address of the bridge's treasury that collects fees
+    /// @param _treasuryAddr The address of the bridge's treasury that collects fees
+    /// @param _cronjobAddr The address of the bridge's cronjob that validate unlocks
     /// @param _jobId The oracle jobId
     /// @param _ofee The oracle $LINK fee
-    /// @param _bfee The bridge service fee in hundredths of a percent
+    /// @param _bLockfee The bridge service fee in hundredths of a percent
+    /// @param _minBAmount The minimal bridgeable amount of tokens
+    /// @param _unlockFlatFee Unlocking locked token flat fee amount
+    /// @param _baseEndpoint The MEM API base endpoint
     constructor(
         IERC20 _btoken,
         address _oracleAddress,
         address _linkTokenAddr,
-        address _treasury,
+        address _treasuryAddr,
+        address _cronjobAddr,
         string memory _jobId,
+        string memory _baseEndpoint,
         uint256 _ofee,
-        uint256 _bfee
+        uint256 _bLockfee,
+        uint256 _minBAmount,
+        uint256 _unlockFlatFee
     ) ConfirmedOwner(msg.sender) {
+        address uinitialized = address(0);
+        require(
+            _oracleAddress != uinitialized &&
+                _linkTokenAddr != uinitialized &&
+                _treasuryAddr != uinitialized &&
+                _cronjobAddr != uinitialized &&
+                address(_btoken) != uinitialized
+        );
         token = _btoken; // 0x779877A7B0D9E8603169DdbD7836e478b4624789 $LINK
-        treasury = _treasury; // 0x747D50C93e6821277805a2B80FE9CBF72EFCe6Cd
+        treasury = _treasuryAddr; // 0x747D50C93e6821277805a2B80FE9CBF72EFCe6Cd
+        cronjobAddress = _cronjobAddr; //
+        minBamount = _minBAmount; // 5000000000000000000 (5 USDT/C)
         setChainlinkToken(_linkTokenAddr); // 0x779877A7B0D9E8603169DdbD7836e478b4624789
         setChainlinkOracle(_oracleAddress); // 0x0FaCf846af22BCE1C7f88D1d55A038F27747eD2B
         setJobId(_jobId); // "a8356f48569c434eaa4ac5fcb4db5cc0"
         setFeeInHundredthsOfLink(_ofee); // sepolia is zero $LINK fee
-        bridgeFee = _bfee; // 0.25% for the launch so uint256(25)
+        bridgeLockFee = _bLockfee; // 0.25% == uint256(25)
+        unlockFlatFee = _unlockFlatFee; // 2.5 USDT == 2500000000000000000
+        baseEndpoint = _baseEndpoint; // https://0xmem.net/vu/ | https://mem-bridge-audit-0a0d08c8e33a.herokuapp.com/vu/
     }
 
-    /// @notice The function that reads data from MEM partof the bridge
+    /// @notice The function that reads data from MEM part of the bridge
     /// @dev After issuing an unlock on MEM function, use the memid of that unlock req to fetch the unlockable amount
-    /// This function send the request to the LinkWellNodes Chainlink's oracle and receive the amount that the user 
+    /// This function send the request to the LinkWellNodes Chainlink's oracle and receive the amount that the user
     /// can unlock for a given mem id.
     /// @param _memid The mem id of the issued unlock on the MEM serverless function
+    /// @param _caller The msg.sender EOA passed by the cronjob from MEM
     function validateUnlock(
-        string calldata _memid
+        string calldata _memid,
+        address _caller
     ) public returns (bytes32 requestId) {
+        assert(msg.sender == cronjobAddress);
         // memid can be redeemed once
         assert(!midIsRedeemed[_memid]);
         // chainlink request
@@ -99,12 +132,12 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         );
 
         // construct the API req full URL
-        string memory arg1 = string.concat("https://0xmem.net/vu/", _memid);
-        string memory caller = string.concat(
+        string memory arg1 = string.concat(baseEndpoint, _memid);
+        string memory arg2 = string.concat(
             "/",
-            Strings.toHexString(uint256(uint160(msg.sender)), 20)
+            Strings.toHexString(uint256(uint160(_caller)), 20)
         );
-        string memory url = string.concat(arg1, caller);
+        string memory url = string.concat(arg1, arg2);
 
         // Set Chain req object
         req.add("method", "GET");
@@ -115,15 +148,19 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
             '["content-type", "application/json", "set-cookie", "sid=14A52"]'
         );
         req.add("body", "");
-        req.add("contact", "https://t.me/ + add later");
-        req.addInt("multiplier", 1); // MEM store balances in uint256 as well
+        req.add("contact", "https://t.me/decentland");
+        req.addInt("multiplier", 1); // MEM store balances in BigInt as well
 
         // Sends the request
         requestId = sendOperatorRequest(req, oracleFee);
-        // map requestId to caller
-        reqToCaller[requestId] = msg.sender;
+        // map requestId to _caller
+        reqToCaller[requestId] = _caller;
         // map the chainlink requestId to memid
         reqToMemId[requestId] = _memid;
+        // map the memid to chainlink requestId (read-only purposes only)
+        // to retrieve the memid associated with a requestId, users should
+        // use the reqToMemId map
+        MemIdToReq[_memid] = requestId;
         // map the memid redeeming status to false
         midIsRedeemed[_memid] = false;
         return requestId;
@@ -150,14 +187,23 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
 
     /// @notice The lock function allows the users to lock the _btoken bond to this contract
     /// @dev Lock _btoken to the caller's address
-    /// @param _amount The amount of tokens to lock 
-    function lock(uint256 _amount) external {
+    /// @param _amount The amount of tokens to lock
+    /// @param _to An optional parameter to make the bridge compatible with smart wallets
+    function lock(uint256 _amount, address _to) external {
+        address caller;
         uint256 net_amount = computeNetAmount(_amount);
         uint256 generateFees = _amount - net_amount;
+        // assign the correct EOA to _to param
+        if (_to == address(0)) {
+            caller = msg.sender;
+        } else {
+            caller = _to;
+        }
+
         // ERC20 token transfer
         token.safeTransferFrom(msg.sender, address(this), _amount);
         // update balances map
-        balanceOf[msg.sender] += net_amount;
+        balanceOf[caller] += net_amount;
         // update treasury balance from fee cut
         balanceOf[treasury] += generateFees;
         // update totalLocked amount
@@ -165,7 +211,7 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         //update treasury cumultive fee
         cumulativeFees += generateFees;
         // emit event
-        emit Lock(msg.sender, net_amount);
+        emit Lock(caller, net_amount);
     }
 
     /// @notice This function is called after the validatUnlock() using the requestId of the memid
@@ -175,9 +221,10 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     function executeUnlock(bytes32 _requestId) public {
         // retrieve request amount and mem id from maps
         uint256 amount = requests[_requestId];
+        require(amount > unlockFlatFee, "err_invalid_amount");
         string memory memid = reqToMemId[_requestId];
         // fee calculation
-        uint256 net_amount = computeNetAmount(amount);
+        uint256 net_amount = amount - unlockFlatFee;
         uint256 generateFees = amount - net_amount;
         // validate that the request owner is the function caller
         require(reqToCaller[_requestId] == msg.sender, "err_invalid_caller");
@@ -201,10 +248,10 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         // emit event
         emit Unlock(msg.sender, net_amount);
     }
-    /// @notice Calculate the net amount upon lock or unlock
-    /// @param _amount the lock/unlock amount (from requestId)
+    /// @notice Calculate the net amount upon locking
+    /// @param _amount the lock amount (from requestId)
     function computeNetAmount(uint256 _amount) internal view returns (uint256) {
-        uint256 bfee = (_amount * bridgeFee) / 10000;
+        uint256 bfee = (_amount * bridgeLockFee) / 10000;
         return _amount - bfee;
     }
 
@@ -218,10 +265,10 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
             "Unable to transfer"
         );
     }
-    
+
     /// @notice Withdraw the bridging service fees generated by contract usage
     /// to the treasury EOA.
-    /// @dev Can be only called by the treasury EOA 
+    /// @dev Can be only called by the treasury EOA
     function withdrawFees() public {
         uint256 amount = balanceOf[treasury];
         assert(amount > 0);
@@ -238,6 +285,7 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     /// @dev Can be only called by contract owner
     /// @param _oracleAddress The new oracle address
     function setOracleAddress(address _oracleAddress) public onlyOwner {
+        require(_oracleAddress != address(0), "No address 0 allowed");
         oracleAddress = _oracleAddress;
         setChainlinkOracle(_oracleAddress);
     }
@@ -288,5 +336,56 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
         returns (uint256)
     {
         return (oracleFee * 100) / LINK_DIVISIBILITY;
+    }
+
+    /// @notice Update the MEM API base endpoint
+    /// @dev Can be only called by contract owner
+    /// @param _url New URL endpoint
+    function setBaseEndpoint(string memory _url) public onlyOwner {
+        baseEndpoint = _url;
+    }
+
+    /// @notice retrieve currently in-use base endpoint
+    /// @dev Can be only called by contract owner
+    function getBaseEndpoint() public view onlyOwner returns (string memory) {
+        return baseEndpoint;
+    }
+
+    /// @notice Update the MEM API base endpoint
+    /// @dev Can be only called by contract owner
+    /// @param _amount New URL endpoint
+    function setBridgeLockFee(uint256 _amount) public onlyOwner {
+        bridgeLockFee = _amount;
+    }
+
+    /// @notice retrieve currently in-use base endpoint
+    /// @dev Can be only called by contract owner
+    function getBridgeLockFee() public view onlyOwner returns (uint256) {
+        return bridgeLockFee;
+    }
+
+    /// @notice Update the minimum bridgeable amount
+    /// @dev Can be only called by contract owner
+    /// @param _amount New amount
+    function setMinBamount(uint256 _amount) public onlyOwner {
+        minBamount = _amount;
+    }
+
+    /// @notice retrieve currently in-use the minimum bridgeable amount
+    /// @dev Can be only called by contract owner
+    function getMinBamount() public view onlyOwner returns (uint256) {
+        return minBamount;
+    }
+    /// @notice Update the unlocking flat fee
+    /// @dev Can be only called by contract owner
+    /// @param _amount New amount
+    function setUnlockFlatFee(uint256 _amount) public onlyOwner {
+        unlockFlatFee = _amount;
+    }
+
+    /// @notice retrieve currently in-use the unlocking flat fee
+    /// @dev Can be only called by contract owner
+    function getUnlockFlatFee() public view onlyOwner returns (uint256) {
+        return unlockFlatFee;
     }
 }

@@ -12,7 +12,7 @@ export async function validateUnlock(memid, caller) {
       (req) =>
         req.mid === memid && normalized(req.address) == normalized(caller),
     );
-    return { amount: unlock.amount };
+    return { amount: Number(unlock.amount) };
   } catch (error) {
     console.log(error);
     return { amount: 0 };

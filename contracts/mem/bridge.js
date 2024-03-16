@@ -12,7 +12,7 @@ export async function handle(state, action) {
       )
     )?.asJSON();
     ContractAssert(req.caller.toLowerCase() == normalizedCaller, "err");
-    ContractAssert(req.amount > 0, "err");
+    ContractAssert(BigInt(req.amount) > 0n, "err");
     ContractAssert(
       !state.locks.includes(txid.toLowerCase()),
       "err_lock_already_redeemed",
@@ -20,10 +20,13 @@ export async function handle(state, action) {
     state.locks.push(txid.toLowerCase());
 
     if (!(normalizedCaller in state.balances)) {
-      state.balances[normalizedCaller] = 0;
+      state.balances[normalizedCaller] = BigInt(0).toString();
     }
 
-    state.balances[normalizedCaller] += req.amount;
+    const newBalance =
+      BigInt(state.balances[normalizedCaller]) + BigInt(req.amount);
+
+    state.balances[normalizedCaller] = newBalance.toString();
 
     return { state };
   }
@@ -31,9 +34,13 @@ export async function handle(state, action) {
   if (input.function === "initiateUnlock") {
     const { caller, sig, amount } = input;
 
+    const bigIntAmount = BigInt(amount);
+
     const normalizedCaller = _normalizeCaller(caller);
-    ContractAssert(Number.isInteger(amount), "err_amount_not_integer");
-    ContractAssert(amount <= state.balances[normalizedCaller], "err");
+    ContractAssert(
+      bigIntAmount <= BigInt(state.balances[normalizedCaller]),
+      "err",
+    );
 
     await _moleculeSignatureVerification(normalizedCaller, sig);
 
@@ -43,7 +50,9 @@ export async function handle(state, action) {
       amount: amount,
     });
 
-    state.balances[normalizedCaller] -= amount;
+    const newBalance = BigInt(state.balances[normalizedCaller]) - bigIntAmount;
+
+    state.balances[normalizedCaller] = newBalance.toString();
 
     return { state };
   }
@@ -51,22 +60,38 @@ export async function handle(state, action) {
   if (input.function === "transfer") {
     const { caller, sig, target, amount } = input;
 
+    const bigIntAmount = BigInt(amount);
+
     const normalizedCaller = _normalizeCaller(caller);
     const normalizedTarget = _normalizeCaller(target);
 
-    ContractAssert(Number.isInteger(amount), "err_amount_not_integer");
-    ContractAssert(amount <= state.balances[normalizedCaller], "err");
+    ContractAssert(
+      bigIntAmount <= BigInt(state.balances[normalizedCaller]),
+      "err",
+    );
     ContractAssert(normalizedCaller !== normalizedTarget, "err_self_transfer");
 
     await _moleculeSignatureVerification(normalizedCaller, sig);
 
     if (!(normalizedTarget in state.balances)) {
-      state.balances[normalizedTarget] = 0;
+      state.balances[normalizedTarget] = BigInt(0n);
     }
 
-    state.balances[normalizedTarget] += amount;
-    state.balances[normalizedCaller] -= amount;
+    const newBalanceTarget =
+      BigInt(state.balances[normalizedTarget]) + bigIntAmount;
+    const newBalanceCaller =
+      BigInt(state.balances[normalizedCaller]) - bigIntAmount;
 
+    state.balances[normalizedTarget] = newBalanceTarget;
+    state.balances[normalizedCaller] = newBalanceCaller;
+
+    return { state };
+  }
+
+  if (input.function === "updateBridgeAddr") {
+    const { address } = input;
+
+    state.bridge_address = address;
     return { state };
   }
 
