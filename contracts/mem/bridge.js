@@ -79,14 +79,54 @@ export async function handle(state, action) {
 
     const amount = BigInt(req.amount).toString();
 
-	await _moleculeSignatureVerification(normalizedCaller, sig);
+    await _moleculeSignatureVerification(normalizedCaller, sig);
 
     state.ao_locks.push({
-    	evm_caller: normalizedCaller,
-    	ao_address: ao_address,
-    	amount: amount,
-    	id: sig
+      evm_caller: normalizedCaller,
+      ao_address: ao_address,
+      amount: amount,
+      id: sig,
     });
+
+    return { state };
+  }
+
+  if (input.function === "executeUnlockFromAo") {
+    const { caller, sig, auid } = input;
+
+    ContractAssert(
+      !state.aoUnlocks.includes(auid),
+      "err_ao_unlock_id_already_used",
+    );
+
+    const normalizedCaller = _normalizeCaller(caller);
+    await _moleculeSignatureVerification(normalizedCaller, sig);
+    const moleculeArg = btoa(
+      JSON.stringify([{ name: "Action", value: "GetBurnReqs" }]),
+    );
+
+    const aoUnlockIds = (
+      await EXM.deterministicFetch(
+        `${state.ao_molecule_endpoint}/${state.ao_process_id}/${moleculeArg}`,
+      )
+    )?.asJSON();
+
+    ContractAssert(auid in aoUnlockIds, "err_aouid_not_found");
+
+    const amount = BigInt(aoUnlockIds[auid].qty);
+    const target = _normalizeCaller(aoUnlockIds[auid].mem_target);
+
+    ContractAssert(target === normalizedCaller, "ERR_INVALID_CALLER");
+
+    state.aoUnlocks.push(auid);
+
+    if (!(normalizedCaller in state.balances)) {
+      state.balances[normalizedCaller] = BigInt(0).toString();
+    }
+
+    const newBalance = BigInt(state.balances[normalizedCaller]) + amount;
+
+    state.balances[normalizedCaller] = newBalance.toString();
 
     return { state };
   }
@@ -156,12 +196,12 @@ export async function handle(state, action) {
     );
   }
 
-   function _validateArweaveAddress(address) {
-      ContractAssert(
-        /[a-z0-9_-]{43}/i.test(address),
-        "ERROR_INVALID_ARWEAVE_ADDRESS"
-      );
-   }
+  function _validateArweaveAddress(address) {
+    ContractAssert(
+      /[a-z0-9_-]{43}/i.test(address),
+      "ERROR_INVALID_ARWEAVE_ADDRESS",
+    );
+  }
 
   function _normalizeCaller(address) {
     _validateEoaSyntax(address);

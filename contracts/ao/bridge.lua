@@ -196,6 +196,7 @@ end)
 Handlers.add('burn', Handlers.utils.hasMatchingTag('Action', 'Burn'), function(msg)
   assert(type(msg.Quantity) == 'string', 'Quantity is required!')
   assert(bint.__lt(0, bint(msg.Quantity)), 'Quantity must be greater than 0')
+  assert(type(msg.MemTarget) == 'string', "Target is required!")
 
   -- if not Balances[msg.From] then Balances[msg.From] = "0" end
   -- if not Balances[msg.Recipient] then Balances[msg.Recipient] = "0" end
@@ -208,18 +209,19 @@ Handlers.add('burn', Handlers.utils.hasMatchingTag('Action', 'Burn'), function(m
     BurnReqs[msg.Id] = {
         qty = tostring(qty),
         caller = msg.From,
+        mem_target = msg.MemTarget
     }
 
     --[[
-         Only send the notifications to the Sender and Recipient
-         if the Cast tag is not set on the Transfer message
+         Only send the notifications to the Sender
+         if the Cast tag is not set on the Burn message
        ]]
     --
     if not msg.Cast then
-      -- Send Debit-Notice to the Sender
+      -- Send Burn-Notice to the Sender
       ao.send({
         Target = msg.From,
-        Action = 'Debit-Notice',
+        Action = 'Burn-Notice',
         Quantity = tostring(qty),
         Data = Colors.gray ..
             "You Burned " ..
@@ -230,7 +232,7 @@ Handlers.add('burn', Handlers.utils.hasMatchingTag('Action', 'Burn'), function(m
   else
     ao.send({
       Target = msg.From,
-      Action = 'Transfer-Error',
+      Action = 'Burn-Error',
       ['Message-Id'] = msg.Id,
       Error = 'Insufficient Balance!'
     })
