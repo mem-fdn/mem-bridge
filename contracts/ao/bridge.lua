@@ -1,5 +1,6 @@
 local bint = require('.bint')(256)
 local ao = require('ao')
+local json = require('json')
 --[[
   This module implements the ao Standard Token Specification.
 
@@ -64,6 +65,12 @@ Handlers.add('info', Handlers.utils.hasMatchingTag('Action', 'Info'), function(m
   })
 end)
 
+Handlers.add('getBurnReqs', Handlers.utils.hasMatchingTag('Action', 'GetBurnReqs'), function(msg)
+  ao.send({
+    Target = msg.From,
+    Data = json.encode(BurnReqs)
+  })
+end)
 --[[
      Balance
    ]]
