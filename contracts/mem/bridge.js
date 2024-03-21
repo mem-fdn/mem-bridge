@@ -57,40 +57,6 @@ export async function handle(state, action) {
     return { state };
   }
 
-  // if (input.function === "executeLockonAo") {
-  //   const { txid, caller, sig, ao_address } = input;
-  //   const normalizedCaller = _normalizeCaller(caller);
-
-  //   _validateArweaveAddress(ao_address);
-
-  //   const req = (
-  //     await EXM.deterministicFetch(
-  //       `${state.mem_molecule}/${txid}/${normalizedCaller}/${state.bridge_address}`,
-  //     )
-  //   )?.asJSON();
-  //   ContractAssert(req.caller.toLowerCase() == normalizedCaller, "err");
-  //   ContractAssert(BigInt(req.amount) > 0n, "err");
-  //   ContractAssert(
-  //     !state.locks.includes(txid.toLowerCase()),
-  //     "err_lock_already_redeemed",
-  //   );
-
-  //   state.locks.push(txid.toLowerCase());
-
-  //   const amount = BigInt(req.amount).toString();
-
-  //   await _moleculeSignatureVerification(normalizedCaller, sig);
-
-  //   state.ao_locks.push({
-  //     evm_caller: normalizedCaller,
-  //     ao_address: ao_address,
-  //     amount: amount,
-  //     id: sig,
-  //   });
-
-  //   return { state };
-  // }
-
   if (input.function === "swapToAo") {
     const { caller, sig, ao_address, amount } = input;
     const normalizedCaller = _normalizeCaller(caller);
