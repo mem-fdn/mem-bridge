@@ -154,7 +154,13 @@ export async function handle(state, action) {
   }
 
   if (input.function === "updateBridgeAddr") {
-    const { address } = input;
+    const { caller, address, sig } = input;
+
+    const normalizedCaller = _normalizeCaller(caller);
+    const normalizedAddress = _normalizeCaller(address);
+    ContractAssert(normalizedCaller === state.admin, "ERROR_INVALID_CALLER");
+
+    await _moleculeSignatureVerification(normalizedCaller, sig);
 
     state.bridge_address = address;
     return { state };
