@@ -30,7 +30,6 @@ local json = require("json")
     - GetBurnReqs(): return all of the BurnReqs table
 ]]
 --
-local json = require("json")
 
 --[[
      Initialize State
