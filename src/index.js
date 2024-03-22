@@ -6,6 +6,7 @@ import axios from "axios";
 
 import { validateUnlock } from "./utils/memTx.js";
 import { validateLock } from "./utils/ethTx.js";
+import { executeMemAoLock } from "./utils/aoMint.js";
 
 dotenv.config();
 const port = process.env.PORT || 3000;
@@ -47,6 +48,20 @@ app.get("/vl/:txid/:caller/:bridgeAddr", async (req, res) => {
   } catch (error) {
     console.log(error);
     res.json({ caller: null });
+    return;
+  }
+});
+
+// AL: execute the AO LOCK on MEM to AO
+app.get("/al/:mid", async (req, res) => {
+  try {
+    const { mid } = req.params;
+    const result = await executeMemAoLock(mid);
+    res.json(result);
+    return;
+  } catch (error) {
+    console.log(error);
+    res.json({ messageId: null });
     return;
   }
 });

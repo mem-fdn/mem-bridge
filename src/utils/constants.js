@@ -5,6 +5,7 @@ export const BRIDGES_CONTRACTS = {
   },
 };
 
-export const MEM_ORACLE_ID = `KHuOj-dvS7VLfuTNKz3GBr2LmwlP2kBfDc_4iFoRzKw`;
+export const MEM_ORACLE_ID = `Bali0mqkkep3dqThT-DRPCn4EbwZc4YLVumvKyG9N4I`;
+export const AO_PROCESS_ID = `xtvzEpBJfkrKz8FRxwFUkP3q5x5OOWDn3LE6bkf0MT0`;
 
 export const RPC_URL = `https://1rpc.io/sepolia`;

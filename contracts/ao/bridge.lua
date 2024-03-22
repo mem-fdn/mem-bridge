@@ -102,6 +102,19 @@ Handlers.add(
         )
     end
 )
+
+Handlers.add(
+    "getMemIds",
+    Handlers.utils.hasMatchingTag("Action", "GetMemIds"),
+    function(msg)
+        ao.send(
+            {
+                Target = msg.From,
+                Data = json.encode(MemIds)
+            }
+        )
+    end
+)
 --[[
      Balance
    ]]
