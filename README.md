@@ -52,6 +52,14 @@ If you intend to modify and test the code yourself, please ensure to follow thes
 
 These modifications are essential to ensure that the API, which Chainlink interacts with, hosted under [0xmem.net](https://0xmem.net), accurately reads the token changes.
 
+## Lock Flow
+
+![lock](./img/lock.png)
+
+## Unlock Flow
+
+![unlock](./img/unlock.png)
+
 ## How It Works (Transaction Lifecycle for Bridging)
 
 This section elucidates the transaction lifecycle of a lock-mint process:
