@@ -393,11 +393,10 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     }
 
     /// @notice Get the oracleFee state variable fee value
-    /// @dev Only called by contract owner
+    /// @dev Public GET function
     function getFeeInHundredthsOfLink()
         public
         view
-        onlyOwner
         returns (uint256)
     {
         return (oracleFee * 100) / LINK_DIVISIBILITY;
@@ -411,8 +410,8 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     }
 
     /// @notice retrieve currently in-use base endpoint
-    /// @dev Can be only called by contract owner
-    function getBaseEndpoint() public view onlyOwner returns (string memory) {
+    /// @dev Public GET function
+    function getBaseEndpoint() public view returns (string memory) {
         return baseEndpoint;
     }
 
@@ -424,8 +423,8 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     }
 
     /// @notice retrieve currently in-use base endpoint
-    /// @dev Can be only called by contract owner
-    function getBridgeLockFee() public view onlyOwner returns (uint256) {
+    /// @dev Public GET function
+    function getBridgeLockFee() public view returns (uint256) {
         return bridgeLockFee;
     }
 
@@ -437,8 +436,8 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     }
 
     /// @notice retrieve currently in-use the minimum bridgeable amount
-    /// @dev Can be only called by contract owner
-    function getMinBamount() public view onlyOwner returns (uint256) {
+    /// @dev Public GET function
+    function getMinBamount() public view returns (uint256) {
         return minBamount;
     }
     /// @notice Update the unlocking flat fee
@@ -449,8 +448,8 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
     }
 
     /// @notice retrieve currently in-use the unlocking flat fee
-    /// @dev Can be only called by contract owner
-    function getUnlockFlatFee() public view onlyOwner returns (uint256) {
+    /// @dev Public GET function
+    function getUnlockFlatFee() public view returns (uint256) {
         return unlockFlatFee;
     }
 }
