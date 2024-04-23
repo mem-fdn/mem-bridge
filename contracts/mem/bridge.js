@@ -1,6 +1,7 @@
 export async function handle(state, action) {
   const input = action.input;
 
+  // lock on EVM, mint on MEM (EVM --> MEM)
   if (input.function === "executeLock") {
     // sig is not needed here as its already validated on EVM side
     // so without a sig,the dapp can invoke `executeLock`on behalf of user
@@ -30,7 +31,7 @@ export async function handle(state, action) {
 
     return { state };
   }
-
+  // unlock on MEM, mint on EVM (MEM --> EVM)
   if (input.function === "initiateUnlock") {
     const { caller, sig, amount } = input;
 
@@ -57,6 +58,7 @@ export async function handle(state, action) {
     return { state };
   }
 
+  // lock on MEM, mint on AO (MEM --> AO)
   if (input.function === "swapToAo") {
     const { caller, sig, ao_address, amount } = input;
     const normalizedCaller = _normalizeCaller(caller);
@@ -67,7 +69,10 @@ export async function handle(state, action) {
     await _moleculeSignatureVerification(normalizedCaller, sig);
 
     ContractAssert(bigIntAmount > 0n, "err");
-    ContractAssert(BigInt(state.balances[normalizedCaller]) >= bigIntAmount, "err_invalid_amount");
+    ContractAssert(
+      BigInt(state.balances[normalizedCaller]) >= bigIntAmount,
+      "err_invalid_amount",
+    );
 
     const newBalance = BigInt(state.balances[normalizedCaller]) - bigIntAmount;
     state.balances[normalizedCaller] = newBalance.toString();
@@ -82,6 +87,7 @@ export async function handle(state, action) {
     return { state };
   }
 
+  // lock on AO, mint on MEM (AO --> MEM)
   if (input.function === "executeUnlockFromAo") {
     const { caller, sig, auid } = input;
 
@@ -121,7 +127,7 @@ export async function handle(state, action) {
 
     return { state };
   }
-
+  // MEM <--> MEM
   if (input.function === "transfer") {
     const { caller, sig, target, amount } = input;
 
@@ -153,16 +159,28 @@ export async function handle(state, action) {
     return { state };
   }
 
-  if (input.function === "updateBridgeAddr") {
-    const { caller, address, sig } = input;
+  if (input.function === "updateAdminStateProperty") {
+    const { caller, key, sig, value } = input;
+
+    const updateAbleKeys = [
+      "bridge_address",
+      "mem_molecule",
+      "evm_molecule_endpoint",
+      "ao_molecule_endpoint",
+      "sig_message",
+    ];
 
     const normalizedCaller = _normalizeCaller(caller);
-    const normalizedAddress = _normalizeCaller(address);
     ContractAssert(normalizedCaller === state.admin, "ERROR_INVALID_CALLER");
+    ContractAssert(key in updateAbleKeys, "ERR)R_INVALID_UPDATEABLE_KEY");
+    ContractAssert(
+      typeof value === "string" && value.length,
+      "ERROR_INVALID_UPDATEABLE_VALUE",
+    );
 
     await _moleculeSignatureVerification(normalizedCaller, sig);
 
-    state.bridge_address = address;
+    state[key] = value;
     return { state };
   }
 
