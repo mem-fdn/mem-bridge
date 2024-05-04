@@ -166,16 +166,16 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
                 _cronjobAddr != uinitialized &&
                 address(_btoken) != uinitialized
         );
-        token = _btoken; 
-        treasury = _treasuryAddr; 
-        cronjobAddress = _cronjobAddr; 
-        minBamount = _minBAmount; 
-        setChainlinkToken(_linkTokenAddr); 
-        setChainlinkOracle(_oracleAddress); 
+        token = _btoken;
+        treasury = _treasuryAddr;
+        cronjobAddress = _cronjobAddr;
+        minBamount = _minBAmount;
+        setChainlinkToken(_linkTokenAddr);
+        setChainlinkOracle(_oracleAddress);
         setJobId(_jobId);
         setFeeInHundredthsOfLink(_ofee);
-        bridgeLockFee = _bLockfee; 
-        unlockFlatFee = _unlockFlatFee; 
+        bridgeLockFee = _bLockfee;
+        unlockFlatFee = _unlockFlatFee;
         baseEndpoint = _baseEndpoint;
     }
 
@@ -394,11 +394,7 @@ contract MemBridge is ChainlinkClient, ConfirmedOwner {
 
     /// @notice Get the oracleFee state variable fee value
     /// @dev Public GET function
-    function getFeeInHundredthsOfLink()
-        public
-        view
-        returns (uint256)
-    {
+    function getFeeInHundredthsOfLink() public view returns (uint256) {
         return (oracleFee * 100) / LINK_DIVISIBILITY;
     }
 
