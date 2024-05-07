@@ -4,7 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import axios from "axios";
 
-import { validateUnlock } from "./utils/memTx.js";
+import { validateUnlock, callEvmValidateUnlock } from "./utils/memTx.js";
 import { validateLock } from "./utils/ethTx.js";
 import { executeMemAoLock } from "./utils/aoMint.js";
 
@@ -62,6 +62,20 @@ app.get("/al/:mid", async (req, res) => {
   } catch (error) {
     console.log(error);
     res.json({ messageId: null });
+    return;
+  }
+});
+
+// cronjob EOA call the validateUnlock() in bridge.sol
+app.get("/server/:mid/:caller", async (req, res) => {
+  try {
+    const { mid, caller } = req.params;
+    const result = await callEvmValidateUnlock(mid, caller);
+    res.json(result);
+    return;
+  } catch (error) {
+    console.log(error);
+    res.json({ requestId: null });
     return;
   }
 });

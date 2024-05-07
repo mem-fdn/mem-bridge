@@ -27,7 +27,7 @@ export async function validateLock(txid, expectedCaller, tokenContractAddr) {
     assert.equal(signature, "Lock(address,uint256)");
 
     const target = args[0];
-    const amount = BigInt(args[1].toString()).toString()
+    const amount = BigInt(args[1].toString()).toString();
 
     console.log({
       caller: target,
@@ -44,5 +44,16 @@ export async function validateLock(txid, expectedCaller, tokenContractAddr) {
     return {
       sender: false,
     };
+  }
+}
+
+export async function getRequestIdFromTxid(txid) {
+  try {
+    const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+    const receipt = await provider.getTransactionReceipt(txid);
+    return receipt.logs[0].topics[1];
+  } catch (error) {
+    console.error("Error:", error);
+    return null;
   }
 }
