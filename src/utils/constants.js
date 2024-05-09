@@ -1,13 +1,13 @@
 export const BRIDGES_CONTRACTS = {
-  "0xe1225ecbBDAB62Eba6F2Bc4366B7A6943F07A5e0": {
+  "0x783983f9265Fd9B816b22912F8dD750c2921EFdf": {
     name: "chainlink_token",
     decimals: 1e18,
   },
 };
 
 export const CHAINLINK_TOKEN_BRIDGE =
-  "0xe1225ecbBDAB62Eba6F2Bc4366B7A6943F07A5e0";
-export const MEM_ORACLE_ID = `Bali0mqkkep3dqThT-DRPCn4EbwZc4YLVumvKyG9N4I`;
+  "0x783983f9265Fd9B816b22912F8dD750c2921EFdf";
+export const MEM_ORACLE_ID = `C4hsuvtitlF6I6a92BKteGX5AhjcWEKJB5jgESETI54`;
 export const AO_PROCESS_ID = `xtvzEpBJfkrKz8FRxwFUkP3q5x5OOWDn3LE6bkf0MT0`;
 
 export const RPC_URL = `https://1rpc.io/sepolia`;
