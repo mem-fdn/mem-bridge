@@ -75,7 +75,7 @@ This section elucidates the transaction lifecycle of a lock-mint process:
     - The `executeLock()` MEM function mirrors the token balance locked in `bridge.sol`, effectively bridging tokens to the MEM protocol.
 
 4. **Initiating Unlock Process:**
-    - To bridge tokens back to the EVM network, the user calls the `initiateUnlock()` function in `bridge.js`, providing a unique `caller` for authentication and assigning it to the `mid` or `memid` data property.
+    - To bridge tokens back to the EVM network, the bridge cronjob calls the `initiateUnlock()` function in `bridge.js`, providing a unique `caller` for authentication and assigning it to the `mid` or `memid` data property.
     - This function removes the caller's balance from circulation on the MEM side.
 
 5. **Unlock Validation:**
@@ -95,7 +95,7 @@ This section elucidates the transaction lifecycle of a lock-mint process:
 - The contract utilizes [LinkWell Nodes](https://linkwellnodes.io/) as the Chainlink oracle provider.
 - The `constructor()` function is commented with initial values used for testing purposes.
 - The bridge has been tested to bridge Sepolia Chainlink token ($LINK - `0x779877A7B0D9E8603169DdbD7836e478b4624789`).
-- The current repository version has been tested using [0xe1225ecbBDAB62Eba6F2Bc4366B7A6943F07A5e0](https://sepolia.etherscan.io/address/0xe1225ecbBDAB62Eba6F2Bc4366B7A6943F07A5e0) for `bridge.sol`, [KHuOj-dvS7VLfuTNKz3GBr2LmwlP2kBfDc_4iFoRzKw](https://api.mem.tech/api/state/KHuOj-dvS7VLfuTNKz3GBr2LmwlP2kBfDc_4iFoRzKw) for `bridge.js`, and [0xmem.net](https://0xmem.net) for the API called by Chainlink.
+- The current repository version has been tested using [0x783983f9265Fd9B816b22912F8dD750c2921EFdf](https://sepolia.etherscan.io/address/0x783983f9265Fd9B816b22912F8dD750c2921EFdf) for `bridge.sol`, [C4hsuvtitlF6I6a92BKteGX5AhjcWEKJB5jgESETI54](https://api.mem.tech/api/state/C4hsuvtitlF6I6a92BKteGX5AhjcWEKJB5jgESETI54) for `bridge.js`, and [0xmem.net](https://0xmem.net) for the API called by Chainlink.
 
 ## Disclaimer
 
