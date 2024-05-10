@@ -37,6 +37,8 @@ export async function handle(state, action) {
 
     const bigIntAmount = BigInt(amount);
 
+    ContractAssert(bigIntAmount > BigInt(state.evm_unlock_flatfee), "err_amount_too_low");
+
     const normalizedCaller = _normalizeCaller(caller);
     ContractAssert(
       bigIntAmount <= BigInt(state.balances[normalizedCaller]),

@@ -75,11 +75,11 @@ This section elucidates the transaction lifecycle of a lock-mint process:
     - The `executeLock()` MEM function mirrors the token balance locked in `bridge.sol`, effectively bridging tokens to the MEM protocol.
 
 4. **Initiating Unlock Process:**
-    - To bridge tokens back to the EVM network, the bridge cronjob calls the `initiateUnlock()` function in `bridge.js`, providing a unique `caller` for authentication and assigning it to the `mid` or `memid` data property.
+    - To bridge tokens back to the EVM network, the user calls the `initiateUnlock()` function in `bridge.js`, providing a unique `caller` for authentication and assigning it to the `mid` or `memid` data property.
     - This function removes the caller's balance from circulation on the MEM side.
 
 5. **Unlock Validation:**
-    - The caller retrieves the resulting `mid` from `./mem/bridge.json` and calls the `validateUnlock()` function in `bridge.sol`.
+    - The dapp retrieves the resulting `mid` from `./mem/bridge.json` and calls (a cronjob, admin function) the `validateUnlock()` function in `bridge.sol`.
     - This function utilizes Chainlink's AnyAPI node to read back from MEM function state, verifying the issued unlock status and authorized amount. It also verifies the `caller` with `msg.sender`.
     - Additionally, it maps the oracle request ID to `msg.sender` (`reqToCaller()`), the unique request ID to the unique `mid` (`reqToMemId`), and the `mid` to redeeming status (`midIsRedeemed`).
 
