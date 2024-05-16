@@ -10,7 +10,7 @@
 
 This repository focuses on a design for a lock-mint ERC20 bridge to the MEM protocol. The bridge's tech stack utilizes MEM serverless functions, MEM molecules, EVM smart contracts, and Chainlink's AnyAPI.
 
-***This is a experimental bridge, unaudited and not tested on mainnet, don't use it in production***
+***This is an experimental bridge, unaudited and not tested on mainnet, don't use it in production***
 
 ## Build and Run
 
@@ -50,7 +50,7 @@ If you intend to modify and test the code yourself, please ensure to follow thes
 
 4. If you change the API endpoint, make sure to update it in the `./contracts/evm/bridge.sol` contract.
 
-These modifications are essential to ensure that the API, which Chainlink interacts with, hosted under [0xmem.net](https://0xmem.net), accurately reads the token changes.
+These modifications are essential to ensure that the API, which Chainlink interacts with and is hosted under [0xmem.net](https://0xmem.net), accurately reads the token changes.
 
 ## Lock Flow
 
@@ -99,7 +99,7 @@ This section elucidates the transaction lifecycle of a lock-mint process:
 
 ## Disclaimer
 
-***This is an experimental bridge, and it has not undergone auditing or testing on the mainnet. Do not to use it in production environments.***
+***This is an experimental bridge, and it has not undergone auditing or testing on the mainnet. Do not use it in production environments.***
 
 ## License
 This repository is licensed under the [MIT License](./LICENSE)
