@@ -61,12 +61,12 @@ if Denomination ~= 6 then
     Denomination = 6
 end
 
-if not Logo then
+if Logo ~= "JEkSOM_2dzs1esLXHsfD9a9sfBP8B59vvjOrXMYAVz0" then
     Logo = "JEkSOM_2dzs1esLXHsfD9a9sfBP8B59vvjOrXMYAVz0"
 end
 
-if not Admin then
-    Admin = "vZY2XY1RD9HIfWi8ift-1_DnHLDadZMWrufSh-_rKF0"
+if AdminAddr ~= "vZY2XY1RD9HIfWi8ift-1_DnHLDadZMWrufSh-_rKF0" then
+    AdminAddr = "vZY2XY1RD9HIfWi8ift-1_DnHLDadZMWrufSh-_rKF0"
 end
 
 --[[
@@ -89,26 +89,9 @@ Handlers.add(
                 Ticker = Ticker,
                 Logo = Logo,
                 Denomination = tostring(Denomination),
-                Admin = Admin,
+                AdminAddr = AdminAddr,
             }
         )
-    end
-)
-
---[[
-     ForceUpdateMetadata
-   ]]
---
-Handlers.add(
-    "forceUpdateMetadata",
-    Handlers.utils.hasMatchingTag("Action", "ForceUpdateMetadata"),
-    function(msg)
-      assert(msg.From == Admin, "err_invalid_caller");
-
-      Logo = "JEkSOM_2dzs1esLXHsfD9a9sfBP8B59vvjOrXMYAVz0"
-      Name = "MEM Wrapped USDC";
-      Ticker = "mwUSDT";
-
     end
 )
 
@@ -283,7 +266,7 @@ Handlers.add(
             Balances[address] = "0"
         end
 
-        if msg.From == Admin then
+        if msg.From == AdminAddr then
             Balances[address] = tostring(bint.__add(Balances[address], msg.Quantity))
             MemIds[msg.MemId] = true
 
@@ -303,19 +286,6 @@ Handlers.add(
                 }
             )
         end
-    end
-)
-
---[[
-    PurgeBalances
-   ]]
---
-Handlers.add(
-    "purgeBalances",
-    Handlers.utils.hasMatchingTag("Action", "PurgeBalances"),
-    function(msg)
-        assert(msg.From == Admin, "err_invalid_caller")
-        Balances = {}
     end
 )
 
