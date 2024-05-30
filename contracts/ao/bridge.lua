@@ -49,20 +49,24 @@ if not MemIds then
     MemIds = {}
 end
 
-if Name ~= "MEM Wrapped USDT" then
-    Name = "MEM Wrapped USDT"
+if Name ~= "MEM Wrapped USDC" then
+    Name = "MEM Wrapped USDC"
 end
 
 if Ticker ~= "mwUSDT" then
     Ticker = "mwUSDT"
 end
 
-if Denomination ~= 18 then
-    Denomination = 18
+if Denomination ~= 6 then
+    Denomination = 6
 end
 
 if not Logo then
-    Logo = "zxSMuOKdCXL2LV2mYO0RJ1Cw_uP15lFDRb1UMoxHxXA"
+    Logo = "JEkSOM_2dzs1esLXHsfD9a9sfBP8B59vvjOrXMYAVz0"
+end
+
+if not Admin then
+    Admin = "vZY2XY1RD9HIfWi8ift-1_DnHLDadZMWrufSh-_rKF0"
 end
 
 --[[
@@ -84,12 +88,34 @@ Handlers.add(
                 Name = Name,
                 Ticker = Ticker,
                 Logo = Logo,
-                Denomination = tostring(Denomination)
+                Denomination = tostring(Denomination),
+                Admin = Admin,
             }
         )
     end
 )
 
+--[[
+     ForceUpdateMetadata
+   ]]
+--
+Handlers.add(
+    "forceUpdateMetadata",
+    Handlers.utils.hasMatchingTag("Action", "ForceUpdateMetadata"),
+    function(msg)
+      assert(msg.From == Admin, "err_invalid_caller");
+
+      Logo = "JEkSOM_2dzs1esLXHsfD9a9sfBP8B59vvjOrXMYAVz0"
+      Name = "MEM Wrapped USDC";
+      Ticker = "mwUSDT";
+
+    end
+)
+
+--[[
+     GetBurnReqs
+   ]]
+--
 Handlers.add(
     "getBurnReqs",
     Handlers.utils.hasMatchingTag("Action", "GetBurnReqs"),
@@ -103,6 +129,10 @@ Handlers.add(
     end
 )
 
+--[[
+     GetMemIds
+   ]]
+--
 Handlers.add(
     "getMemIds",
     Handlers.utils.hasMatchingTag("Action", "GetMemIds"),
@@ -253,7 +283,7 @@ Handlers.add(
             Balances[address] = "0"
         end
 
-        if msg.From == "vZY2XY1RD9HIfWi8ift-1_DnHLDadZMWrufSh-_rKF0" then
+        if msg.From == Admin then
             Balances[address] = tostring(bint.__add(Balances[address], msg.Quantity))
             MemIds[msg.MemId] = true
 
@@ -273,6 +303,19 @@ Handlers.add(
                 }
             )
         end
+    end
+)
+
+--[[
+    PurgeBalances
+   ]]
+--
+Handlers.add(
+    "purgeBalances",
+    Handlers.utils.hasMatchingTag("Action", "PurgeBalances"),
+    function(msg)
+        assert(msg.From == Admin, "err_invalid_caller")
+        Balances = {}
     end
 )
 

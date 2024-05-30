@@ -2,7 +2,7 @@ import axios from "axios";
 import { ethers } from "ethers";
 import {
   MEM_ORACLE_ID,
-  CHAINLINK_TOKEN_BRIDGE,
+  USDC_TOKEN_BRIDGE,
   BRIDGE_ABI,
   RPC_URL,
 } from "./constants.js";
@@ -50,7 +50,7 @@ export async function callEvmValidateUnlock(memid, caller) {
     const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
     const signer = new ethers.Wallet(process.env.CRONJOB_PK, provider);
     const BridgeContract = new ethers.Contract(
-      CHAINLINK_TOKEN_BRIDGE,
+      USDC_TOKEN_BRIDGE,
       BRIDGE_ABI,
       signer,
     );
