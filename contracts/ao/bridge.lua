@@ -53,8 +53,8 @@ if Name ~= "MEM Wrapped USDC" then
     Name = "MEM Wrapped USDC"
 end
 
-if Ticker ~= "mwUSDT" then
-    Ticker = "mwUSDT"
+if Ticker ~= "mwUSDC" then
+    Ticker = "mwUSDC"
 end
 
 if Denomination ~= 6 then
