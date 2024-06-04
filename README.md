@@ -95,7 +95,7 @@ This section elucidates the transaction lifecycle of a lock-mint process:
 - The contract utilizes [LinkWell Nodes](https://linkwellnodes.io/) as the Chainlink oracle provider.
 - The `constructor()` function is commented with initial values used for testing purposes.
 - The bridge has been tested to bridge Sepolia USDC token ($USDC - `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`).
-- The current repository version has been tested using [0x842b64bBA4D3bc5Cb29A7Bf73813a01CF684AF4a](https://sepolia.etherscan.io/address/0x842b64bBA4D3bc5Cb29A7Bf73813a01CF684AF4a) for `bridge.sol`, [1dvxnlerOzF4hrFxlbOV57IHyrxSHMUTiMdtUNsWUgY](https://api.mem.tech/api/state/1dvxnlerOzF4hrFxlbOV57IHyrxSHMUTiMdtUNsWUgY) for `bridge.js`, and [0xmem.net](https://0xmem.net) for the API called by Chainlink.
+- The current repository version has been tested using [0x842b64bBA4D3bc5Cb29A7Bf73813a01CF684AF4a](https://sepolia.etherscan.io/address/0x842b64bBA4D3bc5Cb29A7Bf73813a01CF684AF4a) for `bridge.sol`, [1dvxnlerOzF4hrFxlbOV57IHyrxSHMUTiMdtUNsWUgY](https://api.mem.tech/api/state/1dvxnlerOzF4hrFxlbOV57IHyrxSHMUTiMdtUNsWUgY) for `bridge.js`, [oDMJXlSOhJ6UjH5i7Dl-UOr_dhS1rQCX4r9ws0jvFps](https://ao.link/token/oDMJXlSOhJ6UjH5i7Dl-UOr_dhS1rQCX4r9ws0jvFps) for `bridge.lua`, and [0xmem.net](https://0xmem.net) for the API called by Chainlink.
 
 ## Disclaimer
 
