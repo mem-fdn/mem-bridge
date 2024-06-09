@@ -3,14 +3,14 @@
     <img src="https://github.com/decentldotland/MEM/assets/77340894/d840ef84-540f-4ccc-a7e0-1ed03c4af8dd" height="180">
   </a>
   <h3 align="center"><code>@mem-fdn/mem-bridge</code></h3>
-  <p align="center">Bridging ERC20 Tokens to MEM Protocol</p>
+  <p align="center">Bridging ERC20 Tokens to MEM Protocol & AO network</p>
 </p>
 
 ## Abstract
 
-This repository focuses on a design for a lock-mint ERC20 bridge to the MEM protocol. The bridge's tech stack utilizes MEM serverless functions, MEM molecules, EVM smart contracts, and Chainlink's AnyAPI.
+This repository focuses on a design for a lock-mint ERC20 bridge to the [MEM protocol](https://mem.tech) and [AO network](https://ao.arweave.dev). The bridge's tech stack utilizes MEM serverless functions, MEM molecules, EVM smart contracts, Chainlink's AnyAPI and AO processes.
 
-***This is a experimental bridge, unaudited and not tested on mainnet, don't use it in production***
+***This is a experimental bridge, audited but not tested on mainnet, don't use it in production***
 
 ## Build and Run
 
@@ -99,7 +99,7 @@ This section elucidates the transaction lifecycle of a lock-mint process:
 
 ## Disclaimer
 
-***This is an experimental bridge, and it has not undergone auditing or testing on the mainnet. Do not to use it in production environments.***
+***This is an experimental bridge, and it has not undergone testing on the mainnet. Do not to use it in production environments.***
 
 ## License
 This repository is licensed under the [MIT License](./LICENSE)
