@@ -169,12 +169,16 @@ export async function handle(state, action) {
       "mem_molecule",
       "evm_molecule_endpoint",
       "ao_molecule_endpoint",
+      "evm_unlock_flatfee",
       "sig_message",
+      "ao_process_id",
+      "name",
+      "ticker"
     ];
 
     const normalizedCaller = _normalizeCaller(caller);
     ContractAssert(normalizedCaller === state.admin, "ERROR_INVALID_CALLER");
-    ContractAssert(key in updateAbleKeys, "ERR)R_INVALID_UPDATEABLE_KEY");
+    ContractAssert(key in updateAbleKeys, "ERR_INVALID_UPDATEABLE_KEY");
     ContractAssert(
       typeof value === "string" && value.length,
       "ERROR_INVALID_UPDATEABLE_VALUE",
